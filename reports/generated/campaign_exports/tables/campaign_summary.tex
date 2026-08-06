@@ -1,15 +1,38 @@
 \begin{table}[htbp]
   \centering
+  \caption{Atmospheric Boundary Layer Field Campaign Dataset Overview}
+  \label{tab:campaign-overview}
+  \begin{tabular}{lcccc}
+    \toprule
+    \textbf{Campaign} & \textbf{Observations} & \textbf{Height Levels} & \textbf{Mean Wind Speed ($\mathrm{m\,s^{-1}}$)} & \textbf{Mean Richardson No.} \\ 
+    \midrule
+    \texttt{BLLAST} & 5600 & 18 & 11.335 & 0.235 \\ 
+    \texttt{SHEBA} & 2273 & 0 & 4.978 & 0.345 \\ 
+    \texttt{FLOSS} & 70796 & 18 & 28.755 & 0.212 \\ 
+    \texttt{CASES-99} & 6538 & 18 & 8.41 & 0.24 \\ 
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.92\linewidth]{reports/generated/campaign_exports/figures/campaign_overview.png}
+  \caption{Comparative campaign overview for derived mean wind speed and mean stability metrics.}
+  \label{fig:campaign-overview}
+\end{figure}
+
+\begin{table}[htbp]
+  \centering
   \caption{Campaign Production Output Summary}
   \label{tab:campaign-production-summary}
   \begin{tabular}{lccc}
     \toprule
     \textbf{Campaign} & \textbf{Status} & \textbf{Rows} & \textbf{Columns} \\ 
     \midrule
-    \texttt{BLLAST} & \texttt{ok} & 5600 & 55 \\ 
-    \texttt{SHEBA} & \texttt{ok} & 2273 & 26 \\ 
-    \texttt{FLOSS} & \texttt{ok} & 70796 & 55 \\ 
-    \texttt{CASES-99} & \texttt{ok} & 6538 & 55 \\ 
+    \texttt{BLLAST} & \texttt{ok} & 5600 & 58 \\ 
+    \texttt{SHEBA} & \texttt{ok} & 2273 & 27 \\ 
+    \texttt{FLOSS} & \texttt{ok} & 70796 & 58 \\ 
+    \texttt{CASES-99} & \texttt{ok} & 6538 & 58 \\ 
     \bottomrule
   \end{tabular}
 \end{table}

@@ -7,6 +7,7 @@ using DifferentialEquations
 using DomainSets
 using LinearAlgebra
 using JuMP
+using JSON3
 
 include("Manifold/ManifoldState.jl")
 include("Manifold/GSPTDiagnostics.jl")
@@ -15,6 +16,7 @@ include("Geometry/Geometry.jl")
 include("Closures/Interface.jl")
 include("Closures/WSINDyClosure.jl")
 include("Closures/MOSTClosure.jl")
+include("Closures/PhysicalSimilarityClosure.jl")
 
 include("Observation/DataIngestion.jl")
 include("Observation/SpectralBLTransform.jl")
@@ -38,8 +40,9 @@ using .ExportUtilities: export_to_csv, export_to_json, export_to_netcdf
 export ManifoldState, FoldConstraint, fold_residual, fold_transversality
 export Geometry
 
-export AbstractClosure, WSINDyClosure, MOSTClosure
+export AbstractClosure, WSINDyClosure, MOSTClosure, PhysicalSimilarityClosure
 export eddy_momentum, eddy_heat, surface_flux
+export evaluate_diffusivity_profile!, evaluate_heat_diffusivity_profile!
 
 export AbstractDiscretization, MethodOfLinesFD, SpectralBLGalerkin
 export generate_stretched_grid, solve_scm

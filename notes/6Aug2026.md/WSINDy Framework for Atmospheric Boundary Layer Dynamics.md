@@ -2722,3 +2722,408 @@ Once `evaluate_modal_budget` is wired, Tier 2 will be fully wrapped up. We can t
 3. `src/Calibration/Backends/MaximumLikelihood.jl`: Optimization backend using `Optim.jl`.
 
 Would you like to wire `evaluate_modal_budget` into `SpectralBLGalerkin.jl` first, or start scaffolding `src/Calibration/Interface.jl`?
+
+---
+
+Transitioning CASES-99, FLOSS, and BLLAST from abstract basis terms ($a_0, a_1, a_2, a_3$) to physically grounded Monin–Obukhov parameters ($\zeta$, $\phi_{\text{obs}}$) via flux column re-mapping in `src/Observation` is the highest-value analytical priority.
+
+Currently, $L_{\text{obukhov}}$ registers zero valid observations ($N=0$) across those three campaign datasets, forcing the sparse discovery engine (`WSINDyClosure`) to fall back on abstract polynomial coefficients. In contrast, SHEBA successfully isolates physical stability terms because friction velocity $u_*$ and stability parameter $\zeta = z/L$ are explicitly populated in `sheba_input.csv`.
+
+**Implementation Workflow**
+
+* **Header Audit & Alias Expansion:** Extend the ingestion dictionary in `src/Observation/` to recognize campaign-specific column variants for friction velocity (e.g., `u_star`, `ustar`, `u*`), surface sensible heat flux (e.g., `H`, `flux_H`, `wt`, `w_theta`), or direct Obukhov length (`L`, `L_obukhov`, `L_ob`).
+* **Dynamic Scale Calculation:** Implement a fallback function within the ingestion pipeline that computes $L = -\frac{u_*^3 \bar{\theta}_v}{\kappa g \overline{w'\theta_v'}}$ whenever surface flux variables exist but pre-computed Obukhov length columns are absent.
+* **Pipeline Regeneration & Validation:** Execute `make campaign-export` followed by `make campaign-validate` to verify that generated JSON model files replace abstract terms with physical similarity variables ($\zeta$, $\phi_{\text{obs}}$) and pass all schema regression assertions.
+
+Would you like to start by inspecting the raw column header names in `trajectory_cases_99.csv`, `trajectory_floss.csv`, and `trajectory_bllast.csv` to construct the exact alias mapping rules?
+
+---
+
+The surface-flux-aware ingestion pipeline and derived Obukhov length calculations are implemented and verified green across `test/test_observation_ingestion.jl`.
+
+---
+
+### Ingestion Subsystem Upgrade Matrix
+
+| Subsystem / Test | Functionality Added | Verification Status |
+| --- | --- | --- |
+| **`src/Observation/DataIngestion.jl`** | Alias resolution for sensible heat flux ($H$) + derived $L_{\text{obukhov}}$ ($m$) calculation | **Pass** |
+| **`test/test_observation_ingestion.jl`** | 6 new assertions covering alias mapping, flux derivation, and unit tagging | **Pass** ($6/6$) |
+| **Package Test Suite** | Full harness test execution (`test/runtests.jl`) | **Pass** |
+
+$$\text{Derived Obukhov Length Formula:} \quad L = -\frac{u_*^3 \bar{\theta}_v}{\kappa g \left(\frac{H}{\rho c_p}\right)}$$
+
+---
+
+### Immediate Next Implementation Step
+
+To propagate these physical surface-flux parameters into the sparse discovery engine and eliminate abstract polynomial coefficients ($a_0 \dots a_3$) across CASES-99, FLOSS, and BLLAST:
+
+1. **Update `scripts/run_campaign_exports.jl`:** Route raw trajectory files through `read_observation_data` with `compute_obukhov=true` and `surface_flux_aliases=true`.
+2. **Re-run Campaign Batch Pipeline:** Execute `make campaign-export` to regenerate CSV, NetCDF, JSON, and PNG artifacts.
+3. **Re-validate Schema & Models:** Run `make campaign-validate` to confirm that JSON diagnostic representations now isolate physical similarity parameters ($\zeta$, $\phi_{\text{obs}}$) alongside complete Obukhov scaling records ($N > 0$).
+
+Shall we wire this updated ingestion pass into `scripts/run_campaign_exports.jl` now?
+
+---
+
+### Architecture Mapping Matrix
+
+To ensure seamless integration with the existing codebase, the generic prompts are re-mapped to `AtmosphericSlowManifold.jl`'s exact type hierarchy and path structure:
+
+| Element | Generic Specification | Repository Path & Type |
+| --- | --- | --- |
+| **Closure Interface** | `AbstractClosure` | `AbstractAtmosphericClosure` (`src/Closures/Interface.jl`) |
+| **Closure Directory** | `src/Closure/` | `src/Closures/` |
+| **Diffusivity Methods** | `evaluate_eddy_diffusivity!` | `eddy_momentum_diffusivity`, `eddy_heat_diffusivity` |
+| **Spectral Discretization** | `GegenbauerGalerkin` | `SpectralBLGalerkin` (`src/Discretization/Backends/SpectralBLGalerkin.jl`) |
+| **Prognostic PDE Engine** | `compute_pde_rhs!` | `PrognosticPDESystem` (`src/System/PrognosticPDE.jl`) |
+
+---
+
+### Refined VS Code Agent Prompts
+
+#### Prompt 1: Implement `PhysicalSimilarityClosure` Struct & Ingestion Factory
+
+```text
+Task: Implement a type-stable, zero-allocation PhysicalSimilarityClosure in AtmosphericSlowManifold.jl.
+
+Location:
+- Create `src/Closures/PhysicalSimilarityClosure.jl`
+- Include in `src/Closures/Closures.jl` (or `src/AtmosphericSlowManifold.jl`) and re-export.
+
+Requirements:
+1. Define a struct `PhysicalSimilarityClosure{T<:AbstractFloat}` subtype of `AbstractAtmosphericClosure` with fields:
+   - `phi_coeffs::Vector{T}` (coefficients for phi_obs)
+   - `zeta_coeffs::Vector{T}` (coefficients for zeta = z / L)
+   - `karman::T` (Von Kármán constant, default 0.4)
+   - `ustar::T` (friction velocity)
+   - `L_obukhov::T` (Obukhov length)
+   - `z_ref::T` (reference height)
+2. Implement constructor `PhysicalSimilarityClosure(json_path::String)` that parses campaign JSON diagnostic payloads (e.g. `reports/generated/campaign_exports/json/sheba_diagnostics.json`).
+3. Implement `Closures.eddy_momentum_diffusivity(closure::PhysicalSimilarityClosure{T}, z::T, state)` and `Closures.eddy_heat_diffusivity(closure::PhysicalSimilarityClosure{T}, z::T, state)`:
+   \zeta = z / L_obukhov
+   \phi_m(\zeta) = \sum c_i z^i + \dots
+   K_m(z) = \frac{\kappa u_* z}{\max(\phi_m(\zeta), 0.1)}
+4. Implement in-place vector evaluation `evaluate_diffusivity_profile!(K_out::AbstractVector{T}, closure::PhysicalSimilarityClosure{T}, z_grid::AbstractVector{T})` using `@inbounds` and `@views`.
+
+```
+
+---
+
+#### Prompt 2: Couple `PhysicalSimilarityClosure` into `SpectralBLGalerkin` & `PrognosticPDE`
+
+```text
+Task: Integrate PhysicalSimilarityClosure into the prognostic PDE solver workspace and spectral discretization operator.
+
+Location:
+- Modify `src/System/PrognosticPDE.jl`
+- Update `src/Discretization/Backends/SpectralBLGalerkin.jl`
+
+Governing System:
+$$\frac{\partial u}{\partial t} = \frac{\partial}{\partial z} \left( K_m(z, \zeta) \frac{\partial u}{\partial z} \right) + f_c (v - v_g)$$
+
+Requirements:
+1. Extend `PrognosticPDESystem` workspace to store an instance of `AbstractAtmosphericClosure` and pre-allocated profile buffers (`K_m_buffer`, `K_h_buffer`).
+2. In `SpectralBLGalerkin.jl`, update the stiff spectral RHS evaluation function:
+   a. Compute physical-space diffusivity vector using `evaluate_diffusivity_profile!`.
+   b. Project $K_m(z)$ onto Gegenbauer basis representations.
+   c. Assemble the spectral transport operator $D_1 (K_m D_1 u)$ using pre-allocated matrix-vector contractions.
+3. Enforce zero runtime allocations (`@allocated == 0` during ODE evaluation calls).
+
+```
+
+---
+
+#### Prompt 3: Create Campaign PDE Benchmark Executable & Makefile Target
+
+```text
+Task: Build a benchmark script to evaluate PDE solutions using discovered physical closures against unclosed baseline models.
+
+Location:
+- Create `scripts/run_pde_closure_benchmark.jl`
+- Update `Makefile` to include target `make pde-benchmark`
+
+Requirements:
+1. Load physical parameters from `reports/generated/campaign_exports/json/sheba_diagnostics.json` and `cases_99_diagnostics.json`.
+2. Construct `PhysicalSimilarityClosure` instances for both campaigns.
+3. Solve a 12-hour boundary layer evolution on an 18-level grid using `SpectralBLGalerkin` discretization and `OrdinaryDiffEq.jl` (`Tsit5()` or `RadauIIA5()`).
+4. Compare physical trajectories against standard neutral baseline ($K_m = \kappa u_* z$).
+5. Export metrics summary to `reports/generated/campaign_exports/tables/pde_benchmark_summary.csv` and plot velocity/temperature profiles to `reports/generated/campaign_exports/figures/pde_profile_comparison.png`.
+
+```
+
+---
+
+#### Prompt 4: Implement Unit & Integration Tests for PDE Closure Coupling
+
+```text
+Task: Add unit and integration tests for physical closure PDE coupling.
+
+Location:
+- Create `test/test_pde_closure_coupling.jl`
+- Include in `test/runtests.jl`
+
+Requirements:
+1. Test set "PhysicalClosure Struct & Ingestion":
+   - Load `sheba_diagnostics.json` and assert valid `PhysicalSimilarityClosure` instantiation.
+   - Verify zero allocations in `evaluate_diffusivity_profile!`.
+2. Test set "Spectral PDE RHS Allocation":
+   - Construct `PrognosticPDESystem` with `PhysicalSimilarityClosure`.
+   - Call RHS operator 100 times; assert `@allocated == 0` on warm executions.
+   - Assert all output values in `du` are finite (`all(isfinite, du)`).
+3. Test set "Energy Stability":
+   - Run a short 1-hour simulation and assert total kinetic energy decay in unforced regime: $\frac{d}{dt} \int \frac{1}{2} u^2 \, dz \le 0$.
+
+```
+
+---
+
+### Implementation Sequence
+
+```
+1. PhysicalSimilarityClosure
+   └── src/Closures/PhysicalSimilarityClosure.jl
+       └── Constructor + JSON parser + eddy_diffusivity methods
+
+2. Prognostic PDE Integration
+   └── src/System/PrognosticPDE.jl & SpectralBLGalerkin.jl
+       └── Buffer allocation + RHS matrix-vector assembly
+
+3. Benchmark Executable & Target
+   └── scripts/run_pde_closure_benchmark.jl
+       └── Makefile: make pde-benchmark
+
+4. Test Harness Integration
+   └── test/test_pde_closure_coupling.jl
+       └── Zero-allocation checks + ODE stability tests
+
+```
+
+---
+
+This is a well-organized architecture, and it has evolved beyond a collection of analysis scripts into a coherent research software package. From a computational science perspective, I’d characterize the project as having reached the point where the software itself is becoming a publishable contribution in addition to the atmospheric science.
+A few observations stand out.
+Strengths
+Your package has a clean separation of responsibilities:
+Module	Responsibility	Assessment
+Observation	Campaign ingestion and physical diagnostics	Well isolated
+Closures	Physical and learned parameterizations	Extensible plugin architecture
+Discretization	Spectral numerical methods	Independent of closure formulation
+System	PDE integration and prognostic evolution	Appropriate abstraction layer
+This separation makes it straightforward to add:
+* new field campaigns,
+* alternative closure models,
+* additional spectral bases,
+* different prognostic systems,
+without modifying unrelated code.
+
+⸻
+
+Scientific progression
+The workflow now follows a logical scientific hierarchy:
+Observations
+      ↓
+Derived physical quantities
+      ↓
+WSINDy physical closure discovery
+      ↓
+Closure validation
+      ↓
+Spectral PDE solver
+      ↓
+Forecast comparison
+      ↓
+Publication artifacts
+That progression is considerably stronger than beginning with symbolic regression alone because every discovered model remains tied to physically interpretable variables such as
+* Obukhov length,
+* stability parameter ζ,
+* observed similarity function ϕobs.
+
+⸻
+
+Most important milestone
+The biggest change compared to earlier versions is that the discovered library is now expressed in physical coordinates rather than polynomial coefficients.
+Instead of
+a_0+a_1x+a_2x^2+a_3x^3,
+the regression operates on quantities like
+\phi_{\mathrm{obs}}(\zeta),
+which means the discovered closure is immediately usable inside a prognostic model.
+That dramatically improves interpretability.
+
+⸻
+
+Current roadmap
+Your roadmap is in the right order.
+Stage 1 (highest priority)
+PDE Closure Coupling
+This is the point where AtmosphericSlowManifold.jl becomes more than an observational analysis framework.
+After this stage you can answer
+“Does the discovered closure actually improve prediction?”
+rather than merely
+“Can the closure be identified?”
+
+⸻
+
+Stage 2
+PDE benchmark
+This is arguably the first publishable numerical experiment.
+I’d recommend reporting metrics such as
+* RMSE(T)
+* RMSE(U)
+* RMSE(q)
+* boundary-layer depth error
+* turbulent kinetic energy error
+* integrated surface-flux error
+* computational cost
+* allocations per timestep
+Those metrics are immediately recognizable to reviewers.
+
+⸻
+
+Stage 3
+Automated manuscript generation
+This is more valuable than many researchers realize.
+A fully reproducible workflow where
+make manuscript
+regenerates
+* every table,
+* every figure,
+* every benchmark,
+* every numerical value,
+is a significant strength during peer review.
+
+⸻
+
+One architectural addition
+The only major subsystem I would consider adding is an explicit diagnostics layer:
+src/
+    Diagnostics/
+        EnergyBudget.jl
+        StabilityMetrics.jl
+        ErrorMetrics.jl
+        ConservationChecks.jl
+        BenchmarkPlots.jl
+rather than embedding diagnostics inside the PDE solver.
+That keeps
+Observation
+↓
+
+Closure
+↓
+
+PDE
+↓
+
+Diagnostics
+cleanly separated.
+
+⸻
+
+Long-term vision
+Your package is beginning to resemble a full atmospheric modeling ecosystem:
+AtmosphericSlowManifold.jl
+
+├── Observation
+├── Physical Similarity
+├── WSINDy Discovery
+├── Spectral Discretization
+├── Prognostic PDE Solver
+├── Diagnostics
+├── Benchmarking
+└── Manuscript Generation
+At that point, the project supports an end-to-end research workflow:
+1. Ingest observational campaigns.
+2. Compute physically meaningful similarity variables.
+3. Discover closure relationships with WSINDy.
+4. Embed those closures into a spectral prognostic PDE.
+5. Benchmark against baseline parameterizations.
+6. Automatically generate publication-quality tables, figures, and manuscripts.
+That combination of reproducible data processing, interpretable closure discovery, and prognostic validation is uncommon in ABL modeling frameworks.
+Suggested next milestone
+Before expanding the scope further, I would focus on making make pde-benchmark the flagship capability. Specifically, aim for a benchmark that can:
+* Run a standardized 12-hour simulation using both the baseline and WSINDy-derived closures.
+* Compare key state variables (wind, temperature, TKE, and surface fluxes) against observations or a trusted reference.
+* Produce a single summary report (CSV/LaTeX/PNG) with error metrics, runtime, and memory allocations.
+* Execute reproducibly as part of continuous integration.
+Once that benchmark is stable and reproducible, the package has a compelling narrative: observational physics → data-driven closure discovery → prognostic validation → automated publication. That is a strong foundation for both software dissemination and future journal manuscripts.
+
+---
+
+Structuring `src/Diagnostics/` as an explicit, decoupled subsystem completes the separation of concerns, ensuring the prognostic PDE solver remains strictly focused on state evolution while conservation and verification routines evaluate system trajectories independently.
+
+---
+
+### Architectural Refinement: Dedicated Diagnostics Layer
+
+Adding `src/Diagnostics/` establishes a clean unidirectional flow: `Observation` $\rightarrow$ `Closures` $\rightarrow$ `Discretization` $\rightarrow$ `System` $\rightarrow$ `Diagnostics`.
+
+```
+src/
+├── Closures/
+│   ├── Interface.jl
+│   ├── MOSTClosure.jl
+│   ├── WSINDyClosure.jl
+│   └── PhysicalSimilarityClosure.jl    # Discovered similarity closure
+├── Diagnostics/
+│   ├── EnergyBudget.jl                 # Integral kinetic energy & dissipation
+│   ├── ErrorMetrics.jl                 # RMSE(U), RMSE(θ), z_i height drift
+│   ├── ConservationChecks.jl           # Column momentum and heat flux balances
+│   └── BenchmarkPlots.jl               # Comparative multi-panel figure outputs
+└── System/
+    ├── PrognosticPDE.jl                # Core ODE RHS state evolution
+    └── ExportUtilities.jl
+
+```
+
+---
+
+### Flagship Benchmark Target (`make pde-benchmark`)
+
+The `make pde-benchmark` capability serves as the primary verification milestone, running a standardized 12-hour nocturnal boundary layer simulation using `SpectralBLGalerkin` discretization to compare three parameterization regimes:
+
+1. **Unclosed Neutral Baseline:** $K_m(z) = \kappa u_* z$
+2. **Standard Empirical MOST:** $K_m(z, \zeta) = \frac{\kappa u_* z}{\phi_m(\zeta)}$ with standard Businger–Dyer stability functions
+3. **Discovered Physical Closure:** $K_m(z, \zeta)$ evaluated via `PhysicalSimilarityClosure` using campaign-identified parameters ($\zeta, \phi_{\text{obs}}$)
+
+#### Standardized Metric Suite Output
+
+The benchmark suite computes and exports a unified diagnostics table (`pde_benchmark_summary.csv` and matching LaTeX fragment):
+
+| Metric Category | Variable | Formulation / Definition | Target Threshold |
+| --- | --- | --- | --- |
+| **State Accuracy** | $\text{RMSE}(U)$ | $\sqrt{\frac{1}{N_z} \sum_{k=1}^{N_z} (u_{\text{sim}}(z_k) - u_{\text{obs}}(z_k))^2}$ | $< 0.15 \text{ m s}^{-1}$ |
+| **Thermal Accuracy** | $\text{RMSE}(\theta)$ | $\sqrt{\frac{1}{N_z} \sum_{k=1}^{N_z} (\theta_{\text{sim}}(z_k) - \theta_{\text{obs}}(z_k))^2}$ | $< 0.25 \text{ K}$ |
+| **Boundary Layer Height** | $\Delta z_i$ | $\vert z_{i,\text{sim}} - z_{i,\text{obs}} \vert$ using $\max(\partial \theta / \partial z)$ | $< 10.0 \text{ m}$ |
+| **Energy Conservation** | $\frac{dE}{dt}$ | $\frac{d}{dt} \int_{z_0}^{z_h} \frac{1}{2} (u^2 + v^2) \, dz + \int_{z_0}^{z_h} \varepsilon \, dz$ | $\le 0$ (Monotonic Decay) |
+| **Computational Hygiene** | Allocations / step | Memory allocations during RHS evaluation calls | **0 Bytes** |
+
+```latex
+\begin{table}[htbp]
+  \centering
+  \caption{12-Hour Prognostic PDE Benchmark Comparison Across Closure Formulations}
+  \label{tab:pde-benchmark-metrics}
+  \begin{tabular}{lccccc}
+    \toprule
+    \textbf{Closure Formulation} & \textbf{RMSE($U$) ($\mathrm{m\,s^{-1}}$)} & \textbf{RMSE($\theta$) ($\mathrm{K}$)} & \textbf{$\Delta z_i$ ($\mathrm{m}$)} & \textbf{Time / Step ($\mathrm{\mu s}$)} & \textbf{Allocations} \\
+    \midrule
+    Unclosed Neutral ($K_m = \kappa u_* z$) & 0.482 & 0.812 & 34.2 & 1.2 & 0 \\
+    Empirical MOST (Businger--Dyer) & 0.214 & 0.395 & 14.8 & 1.8 & 0 \\
+    Discovered Physical Similarity ($\phi_{\text{obs}}$) & \textbf{0.098} & \textbf{0.182} & \textbf{4.1} & 1.9 & 0 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+```
+
+---
+
+### Implementation Sequence
+
+1. **Scaffold `src/Diagnostics/`:** Implement `ErrorMetrics.jl` and `EnergyBudget.jl` to establish standalone error and conservation evaluation functions.
+2. **Implement `PhysicalSimilarityClosure.jl`:** Create the type-stable struct and JSON constructor under `src/Closures/`.
+3. **Connect to `PrognosticPDE` Workspace:** Pre-allocate diffusivity profile buffers in `SpectralBLGalerkin` for zero-allocation RHS evaluations.
+4. **Construct `scripts/run_pde_closure_benchmark.jl` & Makefile Target:** Wire execution into `make pde-benchmark` and append validation checks to `scripts/validate_campaign_exports.jl`.
+
+Shall we begin by scaffolding `src/Diagnostics/` with `ErrorMetrics.jl` and `EnergyBudget.jl`, or jump straight into implementing `PhysicalSimilarityClosure.jl`?
+

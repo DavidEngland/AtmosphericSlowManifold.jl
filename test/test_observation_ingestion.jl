@@ -104,3 +104,31 @@ end
         @test obs.columns[:u_star] == [0.3, 0.3]
     end
 end
+
+@testset "Observation mapped ingestion with surface flux aliases" begin
+    mktempdir() do d
+        csv_flux = joinpath(d, "profiles_flux.csv")
+        open(csv_flux, "w") do io
+            write(io, "height,u_velocity,v_velocity,potential_temp,ustar,hs\n")
+            write(io, "2.0,1.0,0.1,289.0,0.30,-20.0\n")
+            write(io, "20.0,2.0,0.2,290.0,0.35,-25.0\n")
+        end
+
+        obs = read_observation_data(
+            csv_flux;
+            z_col = :height,
+            u_col = :u_velocity,
+            v_col = :v_velocity,
+            temp_col = :potential_temp,
+            auto_surface_flux_aliases = true,
+            include_derived_obukhov = true,
+        )
+
+        @test haskey(obs.columns, :sensible_heat_flux)
+        @test haskey(obs.columns, :L_obukhov)
+        @test obs.units[:sensible_heat_flux] == "W m^-2"
+        @test obs.units[:L_obukhov] == "m"
+        @test all(isfinite, obs.columns[:L_obukhov])
+        @test length(obs.columns[:L_obukhov]) == 2
+    end
+end

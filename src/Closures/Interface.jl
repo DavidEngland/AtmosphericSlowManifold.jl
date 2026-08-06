@@ -11,3 +11,11 @@ end
 function surface_flux(::AbstractClosure, ::ManifoldState)
     throw(MethodError(surface_flux, (AbstractClosure, ManifoldState)))
 end
+
+function evaluate_diffusivity_profile!(::AbstractVector, ::AbstractClosure, ::AbstractVector)
+    throw(MethodError(evaluate_diffusivity_profile!, (AbstractVector, AbstractClosure, AbstractVector)))
+end
+
+function evaluate_heat_diffusivity_profile!(::AbstractVector, ::AbstractClosure, ::AbstractVector)
+    throw(MethodError(evaluate_heat_diffusivity_profile!, (AbstractVector, AbstractClosure, AbstractVector)))
+end

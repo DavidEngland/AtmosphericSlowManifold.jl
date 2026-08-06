@@ -27,6 +27,8 @@ mkpath(TABLE_DIR)
 
 slugify(s::String) = lowercase(replace(s, r"[^A-Za-z0-9]+" => "_"))
 
+finite_count(v::Vector{Float64}) = count(isfinite, v)
+
 function to_f64(x)
     if x === missing || x === nothing
         return NaN
@@ -57,6 +59,164 @@ function finite_stats(v::Vector{Float64})
         min = minimum(vf),
         max = maximum(vf),
     )
+end
+
+function get_existing_column(df::DataFrame, candidates::Vector{Symbol})
+    nset = Set(Symbol.(names(df)))
+    for c in candidates
+        c in nset && return c
+    end
+    return nothing
+end
+
+function choose_finite_column(df::DataFrame, candidates::Vector{Symbol}, default::Symbol)
+    for c in candidates
+        hasproperty(df, c) || continue
+        vals = get_numeric_column(df, c)
+        isempty(vals) && continue
+        all(isfinite, vals) && return c
+    end
+    return default
+end
+
+function choose_optional_finite_column(df::DataFrame, candidates::Vector{Symbol})
+    for c in candidates
+        hasproperty(df, c) || continue
+        vals = get_numeric_column(df, c)
+        isempty(vals) && continue
+        all(isfinite, vals) && return c
+    end
+    return nothing
+end
+
+function choose_reference_height(df::DataFrame)
+    ri_cols = Symbol.(filter(n -> startswith(String(n), "ri_g_"), names(df)))
+    heights = Float64[]
+    for c in ri_cols
+        suffix = replace(String(c)[6:end], "_" => ".")
+        z = tryparse(Float64, suffix)
+        z === nothing || push!(heights, z)
+    end
+    isempty(heights) && return 10.0
+    sort!(heights)
+    return heights[cld(length(heights), 2)]
+end
+
+function ensure_obukhov_scaling!(df::DataFrame)
+    has_l = hasproperty(df, :L_obukhov)
+    if has_l
+        lvals = get_numeric_column(df, :L_obukhov)
+        finite_count(lvals) > 0 && return
+    end
+
+    hasproperty(df, :eta_3) || return
+    eta3 = get_numeric_column(df, :eta_3)
+    zref = choose_reference_height(df)
+    L = fill(NaN, length(eta3))
+    for i in eachindex(eta3)
+        η = eta3[i]
+        isfinite(η) || continue
+        abs(η) <= 1e-8 && continue
+        L[i] = zref / η
+    end
+    df[!, :L_obukhov] = L
+end
+
+function derive_zeta_from_obukhov!(df::DataFrame)
+    hasproperty(df, :zeta) && return
+    lcol = get_existing_column(df, Symbol[:L_obukhov, :l_obukhov])
+    lcol === nothing && return
+
+    L = get_numeric_column(df, lcol)
+    zref = choose_reference_height(df)
+    zeta = fill(NaN, length(L))
+    for i in eachindex(L)
+        Li = L[i]
+        isfinite(Li) || continue
+        abs(Li) <= 1e-12 && continue
+        zeta[i] = zref / Li
+    end
+    df[!, :zeta] = zeta
+end
+
+function derive_phi_obs_from_zeta!(df::DataFrame)
+    hasproperty(df, :phi_obs) && return
+    hasproperty(df, :zeta) || return
+
+    zeta = get_numeric_column(df, :zeta)
+    phi = fill(NaN, length(zeta))
+    for i in eachindex(zeta)
+        ζ = zeta[i]
+        isfinite(ζ) || continue
+        if ζ >= 0
+            phi[i] = 1.0 + 5.0 * ζ
+        else
+            core = 1.0 - 16.0 * ζ
+            core > 0 || continue
+            phi[i] = core^(-0.25)
+        end
+    end
+    df[!, :phi_obs] = phi
+end
+
+function apply_observation_ingestion!(df::DataFrame, abs_path::String)
+    kwargs = if hasproperty(df, :sample_index) && hasproperty(df, :eta_1) && hasproperty(df, :eta_2) && hasproperty(df, :theta_star)
+        temp_candidate = choose_finite_column(df, Symbol[:theta_star, :eta_3, :sample_index], :sample_index)
+        (
+            z_col = :sample_index,
+            u_col = :eta_1,
+            v_col = :eta_2,
+            temp_col = temp_candidate,
+            ustar_col = choose_optional_finite_column(df, Symbol[:ustar, :u_star]),
+            hs_col = get_existing_column(df, Symbol[:hs, :h, :shf, :sensible_heat_flux]),
+        )
+    elseif hasproperty(df, :z_lo) && hasproperty(df, :ws_lo) && hasproperty(df, :ws_hi) && hasproperty(df, :T_lo)
+        (
+            z_col = :z_lo,
+            u_col = :ws_lo,
+            v_col = :ws_hi,
+            temp_col = :T_lo,
+            q_col = choose_optional_finite_column(df, Symbol[:q_lo, :q, :q_hi, :specific_humidity]),
+            ustar_col = choose_optional_finite_column(df, Symbol[:ustar, :u_star]),
+            hs_col = get_existing_column(df, Symbol[:hs, :h, :shf, :sensible_heat_flux]),
+            theta_ref_col = get_existing_column(df, Symbol[:T_lo, :theta, :theta_k]),
+        )
+    else
+        (
+            z_col = :z,
+            u_col = :u,
+            v_col = :v,
+            temp_col = :theta,
+            q_col = choose_optional_finite_column(df, Symbol[:q]),
+            ustar_col = choose_optional_finite_column(df, Symbol[:u_star, :ustar]),
+            hs_col = get_existing_column(df, Symbol[:hs, :h, :shf, :sensible_heat_flux]),
+            theta_ref_col = get_existing_column(df, Symbol[:theta, :theta_k]),
+        )
+    end
+
+    obs = read_observation_data(
+        abs_path;
+        kwargs...,
+        compute_obukhov = true,
+        surface_flux_aliases = true,
+    )
+
+    for c in (:sensible_heat_flux, :L_obukhov)
+        haskey(obs.columns, c) || continue
+        vals = obs.columns[c]
+        length(vals) == nrow(df) || continue
+        df[!, c] = vals
+    end
+
+    if haskey(obs.columns, :u_star) && !hasproperty(df, :ustar)
+        vals = obs.columns[:u_star]
+        length(vals) == nrow(df) && (df[!, :ustar] = vals)
+    end
+end
+
+function finite_mean(v::AbstractVector{<:Real})
+    vf = filter(isfinite, v)
+    return isempty(vf) ? NaN : mean(vf)
 end
 
 function collect_stats(df::DataFrame, cols::Vector{Symbol})
@@ -106,13 +266,42 @@ function ri_matrix(df::DataFrame)
     return z_grid, t_grid, mat
 end
 
-function build_model_from_row(df::DataFrame)
-    coeff_cols = sort(Symbol.(filter(c -> startswith(String(c), "a_"), names(df))))
+function ri_height_levels(df::DataFrame)
+    rm = ri_matrix(df)
+    return rm === nothing ? 0 : length(rm[1])
+end
 
-    if isempty(coeff_cols)
-        available = Set(Symbol.(names(df)))
-        coeff_cols = [c for c in Symbol[:phi_obs, :zeta, :most_residual, :profile_curvature] if c in available]
+function mean_ri_value(df::DataFrame)
+    rm = ri_matrix(df)
+    if !(rm === nothing)
+        _, _, mat = rm
+        return finite_mean(vec(mat))
+    elseif hasproperty(df, :zeta)
+        return finite_mean(get_numeric_column(df, :zeta))
     end
+    return NaN
+end
+
+function mean_wind_speed(df::DataFrame)
+    if hasproperty(df, :ws_lo) && hasproperty(df, :ws_hi)
+        ws_lo = get_numeric_column(df, :ws_lo)
+        ws_hi = get_numeric_column(df, :ws_hi)
+        n = min(length(ws_lo), length(ws_hi))
+        return finite_mean(@view ((ws_lo[1:n] .+ ws_hi[1:n]) ./ 2.0)[:])
+    elseif hasproperty(df, :eta_1) && hasproperty(df, :eta_2)
+        eta1 = get_numeric_column(df, :eta_1)
+        eta2 = get_numeric_column(df, :eta_2)
+        n = min(length(eta1), length(eta2))
+        return finite_mean(hypot.(eta1[1:n], eta2[1:n]))
+    elseif hasproperty(df, :ustar)
+        return finite_mean(get_numeric_column(df, :ustar))
+    end
+    return NaN
+end
+
+function build_model_from_row(df::DataFrame)
+    available = Set(Symbol.(names(df)))
+    coeff_cols = [c for c in Symbol[:zeta, :phi_obs, :L_obukhov, :sensible_heat_flux, :ustar, :theta_star] if c in available]
 
     terms = OperatorTerm{Float64}[]
     if nrow(df) == 0 || isempty(coeff_cols)
@@ -164,6 +353,39 @@ function plot_ri_heatmap(campaign::String, slug::String, z_grid::Vector{Float64}
     return out
 end
 
+function plot_campaign_overview(overview::DataFrame)
+    campaigns = String.(overview.campaign)
+    wind = Float64.(overview.mean_wind_speed)
+    ri = Float64.(overview.mean_ri)
+
+    p1 = bar(
+        campaigns,
+        wind,
+        xlabel = "Campaign",
+        ylabel = "Mean Wind Speed (m s^-1)",
+        title = "Campaign Mean Wind Speed",
+        legend = false,
+        size = (1100, 450),
+        color = :steelblue,
+    )
+
+    p2 = bar(
+        campaigns,
+        ri,
+        xlabel = "Campaign",
+        ylabel = "Mean Richardson Number",
+        title = "Campaign Mean Stability",
+        legend = false,
+        size = (1100, 450),
+        color = :darkorange,
+    )
+
+    p = plot(p1, p2; layout = (2, 1), size = (1100, 900))
+    out = joinpath(FIG_DIR, "campaign_overview.png")
+    savefig(p, out)
+    return out
+end
+
 summary = DataFrame(
     campaign = String[],
     source_file = String[],
@@ -177,6 +399,14 @@ summary = DataFrame(
     heatmap_fig = String[],
 )
 
+overview = DataFrame(
+    campaign = String[],
+    observations = Int[],
+    height_levels = Int[],
+    mean_wind_speed = Float64[],
+    mean_ri = Float64[],
+)
+
 for (campaign, rel_path) in CAMPAIGN_SOURCES
     slug = slugify(campaign)
     abs_path = normpath(joinpath(pwd(), rel_path))
@@ -188,6 +418,10 @@ for (campaign, rel_path) in CAMPAIGN_SOURCES
 
     df = CSV.read(abs_path, DataFrame)
     rename!(df, Symbol.(names(df)))
+    apply_observation_ingestion!(df, abs_path)
+    ensure_obukhov_scaling!(df)
+    derive_zeta_from_obukhov!(df)
+    derive_phi_obs_from_zeta!(df)
 
     raw_csv = joinpath(CSV_DIR, "$(slug)_raw.csv")
     export_to_csv(raw_csv, df)
@@ -204,6 +438,15 @@ for (campaign, rel_path) in CAMPAIGN_SOURCES
         :n_rows => nrow(df),
         :n_columns => ncol(df),
         :stats => diag_stats,
+        :similarity_parameters => Dict(
+            :zeta => get(diag_stats, :zeta, Dict(:n => 0)),
+            :phi_obs => get(diag_stats, :phi_obs, Dict(:n => 0)),
+        ),
+        :obukhov_scaling => Dict(
+            :n => hasproperty(df, :L_obukhov) ? finite_count(get_numeric_column(df, :L_obukhov)) : 0,
+            :mean => hasproperty(df, :L_obukhov) ? finite_mean(get_numeric_column(df, :L_obukhov)) : NaN,
+            :present => hasproperty(df, :L_obukhov),
+        ),
     )
     model_json = joinpath(JSON_DIR, "$(slug)_model_and_diagnostics.json")
     export_to_json(model_json, model, diagnostics)
@@ -241,15 +484,39 @@ for (campaign, rel_path) in CAMPAIGN_SOURCES
         metrics_fig,
         heatmap_fig,
     ))
+
+    push!(overview, (
+        campaign,
+        nrow(df),
+        ri_height_levels(df),
+        mean_wind_speed(df),
+        mean_ri_value(df),
+    ))
 end
 
 summary_csv = joinpath(TABLE_DIR, "campaign_summary.csv")
 export_to_csv(summary_csv, summary)
 
+overview_csv = joinpath(TABLE_DIR, "campaign_overview.csv")
+export_to_csv(overview_csv, overview)
+
+overview_fig = plot_campaign_overview(overview)
+
 md_path = joinpath(TABLE_DIR, "campaign_summary.md")
 open(md_path, "w") do io
     write(io, "# Campaign Production Summary\n\n")
     write(io, "Generated at UTC: $(string(now(UTC)))\n\n")
+    write(io, "## Campaign Analysis Summary\n\n")
+    write(io, "| Campaign | Observations | Height Levels | Mean Wind Speed (m s^-1) | Mean Richardson Number |\n")
+    write(io, "|---|---:|---:|---:|---:|\n")
+    for r in eachrow(overview)
+        wind = isfinite(r.mean_wind_speed) ? string(round(r.mean_wind_speed; digits = 3)) : "NA"
+        ri = isfinite(r.mean_ri) ? string(round(r.mean_ri; digits = 3)) : "NA"
+        write(io, "| $(r.campaign) | $(r.observations) | $(r.height_levels) | $(wind) | $(ri) |\n")
+    end
+    write(io, "\n")
+    write(io, "Overview figure: $(basename(overview_fig))\n\n")
+    write(io, "## Output Artifact Manifest\n\n")
     write(io, "| Campaign | Status | Rows | Columns | CSV Stats | JSON | NetCDF | Metrics Figure | Heatmap |\n")
     write(io, "|---|---:|---:|---:|---|---|---|---|---|\n")
     for r in eachrow(summary)
@@ -259,6 +526,30 @@ end
 
 tex_path = joinpath(TABLE_DIR, "campaign_summary.tex")
 open(tex_path, "w") do io
+    write(io, "\\begin{table}[htbp]\n")
+    write(io, "  \\centering\n")
+    write(io, "  \\caption{Atmospheric Boundary Layer Field Campaign Dataset Overview}\n")
+    write(io, "  \\label{tab:campaign-overview}\n")
+    write(io, "  \\begin{tabular}{lcccc}\n")
+    write(io, "    \\toprule\n")
+    write(io, "    \\textbf{Campaign} & \\textbf{Observations} & \\textbf{Height Levels} & \\textbf{Mean Wind Speed (\$\\mathrm{m\\,s^{-1}}\$)} & \\textbf{Mean Richardson No.} \\\\ \n")
+    write(io, "    \\midrule\n")
+    for r in eachrow(overview)
+        wind = isfinite(r.mean_wind_speed) ? string(round(r.mean_wind_speed; digits = 3)) : "NA"
+        ri = isfinite(r.mean_ri) ? string(round(r.mean_ri; digits = 3)) : "NA"
+        write(io, "    \\texttt{$(r.campaign)} & $(r.observations) & $(r.height_levels) & $(wind) & $(ri) \\\\ \n")
+    end
+    write(io, "    \\bottomrule\n")
+    write(io, "  \\end{tabular}\n")
+    write(io, "\\end{table}\n\n")
+
+    write(io, "\\begin{figure}[htbp]\n")
+    write(io, "  \\centering\n")
+    write(io, "  \\includegraphics[width=0.92\\linewidth]{reports/generated/campaign_exports/figures/$(basename(overview_fig))}\n")
+    write(io, "  \\caption{Comparative campaign overview for derived mean wind speed and mean stability metrics.}\n")
+    write(io, "  \\label{fig:campaign-overview}\n")
+    write(io, "\\end{figure}\n\n")
+
     write(io, "\\begin{table}[htbp]\n")
     write(io, "  \\centering\n")
     write(io, "  \\caption{Campaign Production Output Summary}\n")

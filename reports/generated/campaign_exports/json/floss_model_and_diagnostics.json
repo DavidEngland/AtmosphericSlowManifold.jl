@@ -2,9 +2,30 @@
     "sparsity_level": 4,
     "residual_norm": 0,
     "diagnostics": {
-        "generated_at_utc": "2026-08-06T18:54:33.324",
+        "obukhov_scaling": {
+            "present": true,
+            "mean": -21.44792651156259,
+            "n": 70796
+        },
+        "similarity_parameters": {
+            "phi_obs": {
+                "n": 70796,
+                "max": 535.8018578189688,
+                "min": 0.1666751853593573,
+                "mean": 15.286844606932588,
+                "std": 36.42107094493095
+            },
+            "zeta": {
+                "n": 70796,
+                "max": 106.96037156379376,
+                "min": -80.92094177727965,
+                "mean": -0.333856697254843,
+                "std": 11.51850647430926
+            }
+        },
+        "generated_at_utc": "2026-08-06T20:24:17.607",
         "campaign": "FLOSS",
-        "n_columns": 55,
+        "n_columns": 58,
         "n_rows": 70796,
         "source_file": "/Users/davidengland/Documents/GitHub/SpectralBL-Analytics/data/drafts/trajectories/trajectory_floss.csv",
         "stats": {
@@ -15,6 +36,13 @@
                 "mean": 0.006772268018619755,
                 "std": 0.027700232993378628
             },
+            "ustar": {
+                "n": 70796,
+                "max": 0.3,
+                "min": 0.3,
+                "mean": 0.3000000000000005,
+                "std": 4.996038895691857e-16
+            },
             "profile_curvature": {
                 "n": 70796,
                 "max": 4.000000000000001,
@@ -23,11 +51,18 @@
                 "std": 1.5142533892893653
             },
             "L_obukhov": {
-                "n": 0,
-                "max": null,
-                "min": null,
-                "mean": null,
-                "std": null
+                "n": 70796,
+                "max": 226203.53560904032,
+                "min": -1.3126113834248784e6,
+                "mean": -21.44792651156259,
+                "std": 5358.845879774928
+            },
+            "phi_obs": {
+                "n": 70796,
+                "max": 535.8018578189688,
+                "min": 0.1666751853593573,
+                "mean": 15.286844606932588,
+                "std": 36.42107094493095
             },
             "most_residual": {
                 "n": 70796,
@@ -35,26 +70,33 @@
                 "min": 0.27381102382576433,
                 "mean": 0.6233240606517301,
                 "std": 0.1405475147905292
+            },
+            "zeta": {
+                "n": 70796,
+                "max": 106.96037156379376,
+                "min": -80.92094177727965,
+                "mean": -0.333856697254843,
+                "std": 11.51850647430926
             }
         }
     },
     "target_variable": "campaign_metric",
     "terms": [
         {
-            "name": "a_0",
-            "coefficient": -3.211416456177215
+            "name": "zeta",
+            "coefficient": 0.48022302115282295
         },
         {
-            "name": "a_1",
-            "coefficient": 4.396670618925709
+            "name": "phi_obs",
+            "coefficient": 3.4011151057641147
         },
         {
-            "name": "a_2",
-            "coefficient": -2.821627238906675
+            "name": "L_obukhov",
+            "coefficient": 31.235487136770356
         },
         {
-            "name": "a_3",
-            "coefficient": 5.093267311860575
+            "name": "ustar",
+            "coefficient": 0.3
         }
     ],
     "num_terms": 4

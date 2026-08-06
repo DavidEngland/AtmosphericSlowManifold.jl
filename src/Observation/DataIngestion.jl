@@ -26,6 +26,51 @@ const EXPECTED_UNITS = Dict(
     :u_star => "m s^-1",
 )
 
+const SURFACE_FLUX_ALIASES = (
+    :hs,
+    :h,
+    :shf,
+    :sensible_heat_flux,
+    :h_sensible,
+)
+
+const THETA_REF_ALIASES = (
+    :theta,
+    :theta_k,
+    :potential_temp,
+    :potential_temperature,
+    :tair,
+    :temperature,
+)
+
+function _first_present_header(hindex::Dict{Symbol, Int}, aliases::Tuple)
+    for a in aliases
+        haskey(hindex, a) && return a
+    end
+    return nothing
+end
+
+function _derive_obukhov_length(theta_ref::Vector{Float64}, ustar::Vector{Float64}, hs::Vector{Float64})
+    n = min(length(theta_ref), length(ustar), length(hs))
+    n == 0 && return Float64[]
+
+    out = fill(NaN, n)
+    kappa = 0.4
+    rho_cp = 1200.0
+
+    for i in 1:n
+        θ = theta_ref[i]
+        u = ustar[i]
+        h = hs[i]
+        if !(isfinite(θ) && isfinite(u) && isfinite(h))
+            continue
+        end
+        abs(h) <= 1e-12 && continue
+        out[i] = -θ * (u^3) * rho_cp / (kappa * h)
+    end
+    return out
+end
+
 function resolve_sibling_data_dir(
     ;
     package_module::Module = AtmosphericSlowManifold,
@@ -223,10 +268,23 @@ function read_observation_data(
     temp_col::Union{Symbol, String} = :theta,
     q_col::Union{Nothing, Symbol, String} = nothing,
     ustar_col::Union{Nothing, Symbol, String} = nothing,
+    hs_col::Union{Nothing, Symbol, String} = nothing,
+    theta_ref_col::Union{Nothing, Symbol, String} = nothing,
+    include_derived_obukhov::Bool = true,
+    auto_surface_flux_aliases::Bool = true,
+    compute_obukhov::Union{Nothing, Bool} = nothing,
+    surface_flux_aliases::Union{Nothing, Bool} = nothing,
     delim::Char = ',',
     default_q::Float64 = 0.0,
     default_u_star::Float64 = 0.3,
 )
+    if !(compute_obukhov === nothing)
+        include_derived_obukhov = compute_obukhov
+    end
+    if !(surface_flux_aliases === nothing)
+        auto_surface_flux_aliases = surface_flux_aliases
+    end
+
     ext = lowercase(splitext(path)[2])
 
     if ext == ".csv"
@@ -241,6 +299,14 @@ function read_observation_data(
         t_key = _normalize_column_selector(temp_col)
         q_key = q_col === nothing ? nothing : _normalize_column_selector(q_col)
         us_key = ustar_col === nothing ? nothing : _normalize_column_selector(ustar_col)
+        hs_key = hs_col === nothing ? nothing : _normalize_column_selector(hs_col)
+        θr_key = theta_ref_col === nothing ? nothing : _normalize_column_selector(theta_ref_col)
+
+        if auto_surface_flux_aliases
+            hs_key === nothing && (hs_key = _first_present_header(hindex, SURFACE_FLUX_ALIASES))
+            θr_key === nothing && (θr_key = _first_present_header(hindex, THETA_REF_ALIASES))
+            us_key === nothing && (us_key = _first_present_header(hindex, HEADER_ALIASES[:u_star]))
+        end
 
         for key in (z_key, u_key, v_key, t_key)
             haskey(hindex, key) || throw(ArgumentError("Missing required column $(key) in $(path)."))
@@ -261,6 +327,8 @@ function read_observation_data(
         theta = col_from_raw(t_key)
         q = q_key === nothing ? fill(default_q, nrows) : col_from_raw(q_key)
         ustar = us_key === nothing ? fill(default_u_star, nrows) : col_from_raw(us_key)
+        hs = hs_key === nothing ? Float64[] : col_from_raw(hs_key)
+        θr = θr_key === nothing ? theta : col_from_raw(θr_key)
 
         cols = Dict(
             :z => z,
@@ -270,10 +338,22 @@ function read_observation_data(
             :q => q,
             :u_star => ustar,
         )
+        if !isempty(hs)
+            cols[:sensible_heat_flux] = hs
+        end
+        if include_derived_obukhov && !isempty(hs)
+            cols[:L_obukhov] = _derive_obukhov_length(θr, ustar, hs)
+        end
         for req in REQUIRED_TOWER_COLUMNS
             all(isfinite, cols[req]) || throw(ArgumentError("Column $(req) contains non-finite values in $(path)."))
         end
         units = Dict(req => EXPECTED_UNITS[req] for req in REQUIRED_TOWER_COLUMNS)
+        if haskey(cols, :sensible_heat_flux)
+            units[:sensible_heat_flux] = "W m^-2"
+        end
+        if haskey(cols, :L_obukhov)
+            units[:L_obukhov] = "m"
+        end
         return ObservationTable(cols, units)
     elseif ext == ".nc"
         ds = NCDataset(path)
@@ -284,6 +364,15 @@ function read_observation_data(
             theta = _read_required_var(ds, Symbol(temp_col), [:theta, :potential_temperature, :th])
             q = q_col === nothing ? fill(default_q, length(z)) : _read_required_var(ds, Symbol(q_col), [:q, :specific_humidity])
             ustar = ustar_col === nothing ? fill(default_u_star, length(z)) : _read_required_var(ds, Symbol(ustar_col), [:u_star, :ustar, :friction_velocity])
+            hs = hs_col === nothing ? Float64[] : _read_required_var(ds, Symbol(hs_col), [:hs, :h, :shf, :sensible_heat_flux])
+            θr = theta_ref_col === nothing ? theta : _read_required_var(ds, Symbol(theta_ref_col), [:theta, :potential_temperature, :th, :temperature])
+
+            if auto_surface_flux_aliases && isempty(hs)
+                try
+                    hs = _read_first_var(ds, [:hs, :h, :shf, :sensible_heat_flux])
+                catch
+                end
+            end
 
             n = minimum((length(z), length(u), length(v), length(theta), length(q), length(ustar)))
             n == 0 && throw(ArgumentError("No profile samples found in NetCDF file: $(path)"))
@@ -296,10 +385,28 @@ function read_observation_data(
                 :q => Float64.(q[1:n]),
                 :u_star => Float64.(ustar[1:n]),
             )
+            if !isempty(hs)
+                m = min(n, length(hs))
+                cols[:sensible_heat_flux] = Float64.(hs[1:m])
+                if include_derived_obukhov
+                    mθ = min(n, length(θr), length(ustar), length(hs))
+                    cols[:L_obukhov] = _derive_obukhov_length(
+                        Float64.(θr[1:mθ]),
+                        Float64.(ustar[1:mθ]),
+                        Float64.(hs[1:mθ]),
+                    )
+                end
+            end
             for req in REQUIRED_TOWER_COLUMNS
                 all(isfinite, cols[req]) || throw(ArgumentError("NetCDF variable $(req) contains non-finite values."))
             end
             units = Dict(req => EXPECTED_UNITS[req] for req in REQUIRED_TOWER_COLUMNS)
+            if haskey(cols, :sensible_heat_flux)
+                units[:sensible_heat_flux] = "W m^-2"
+            end
+            if haskey(cols, :L_obukhov)
+                units[:L_obukhov] = "m"
+            end
             return ObservationTable(cols, units)
         finally
             close(ds)

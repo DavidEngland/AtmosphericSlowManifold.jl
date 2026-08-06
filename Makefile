@@ -6,7 +6,7 @@ JULIA       ?= julia
 PROJECT     ?= --project=.
 SMOKE_ENV   ?= ASM_RUN_SMOKE=1
 
-.PHONY: help instantiate update test test-smoke test-calibration test-export e2e campaign-export campaign-summary campaign-clean clean
+.PHONY: help instantiate update test test-smoke test-calibration test-export e2e campaign-export campaign-summary campaign-validate campaign-clean pde-benchmark clean
 
 default: help
 
@@ -53,9 +53,17 @@ campaign-export:
 campaign-summary:
 	@cat reports/generated/campaign_exports/tables/campaign_summary.md
 
+## campaign-validate: Validate generated campaign artifacts, schemas, and report sections
+campaign-validate:
+	$(JULIA) $(PROJECT) scripts/validate_campaign_exports.jl
+
 ## campaign-clean: Remove generated campaign export artifacts
 campaign-clean:
 	rm -rf reports/generated/campaign_exports/
+
+## pde-benchmark: Run physical-closure spectral PDE benchmark and export summary artifacts
+pde-benchmark:
+	$(JULIA) $(PROJECT) scripts/run_pde_closure_benchmark.jl
 
 ## clean: Remove generated output artifacts, figures, and temporary files
 clean:

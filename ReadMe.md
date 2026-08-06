@@ -199,6 +199,9 @@ make campaign-export
 # Display the generated multi-campaign summary table in the terminal
 make campaign-summary
 
+# Validate generated campaign artifacts and report schemas
+make campaign-validate
+
 # Remove generated campaign artifact directories
 make campaign-clean
 
@@ -218,7 +221,8 @@ Available artifact groups:
 * [reports/generated/campaign_exports/csv](reports/generated/campaign_exports/csv): raw campaign extracts and compact diagnostic summary tables
 * [reports/generated/campaign_exports/json](reports/generated/campaign_exports/json): discovered-model-style coefficient payloads and serialized diagnostics
 * [reports/generated/campaign_exports/netcdf](reports/generated/campaign_exports/netcdf): exported 2D stability / Richardson-number fields
-* [reports/generated/campaign_exports/figures](reports/generated/campaign_exports/figures): campaign metric plots and Ri heatmaps where available
+* [reports/generated/campaign_exports/figures](reports/generated/campaign_exports/figures): campaign metric plots, Ri heatmaps where available, and a comparative campaign overview figure
+* [reports/generated/campaign_exports/tables/campaign_overview.csv](reports/generated/campaign_exports/tables/campaign_overview.csv): derived per-campaign overview metrics including observation count, inferred height levels, mean wind speed, and mean stability
 * [reports/generated/campaign_exports/tables/campaign_summary.md](reports/generated/campaign_exports/tables/campaign_summary.md): markdown manifest of generated outputs
 * [reports/generated/campaign_exports/tables/campaign_summary.tex](reports/generated/campaign_exports/tables/campaign_summary.tex): LaTeX report table
 
@@ -235,6 +239,7 @@ make campaign-summary
 |---|---|---|
 | `make campaign-export` | `julia --project=. scripts/run_campaign_exports.jl` | Exports CSV, JSON, NetCDF, and PNG artifacts under `reports/generated/campaign_exports/` |
 | `make campaign-summary` | `cat reports/generated/campaign_exports/tables/campaign_summary.md` | Prints campaign stats and generated manifest summary |
+| `make campaign-validate` | `julia --project=. scripts/validate_campaign_exports.jl` | Verifies required artifacts, overview schema, and report sections |
 | `make campaign-clean` | `rm -rf reports/generated/campaign_exports/` | Removes generated campaign outputs |
 
 ---

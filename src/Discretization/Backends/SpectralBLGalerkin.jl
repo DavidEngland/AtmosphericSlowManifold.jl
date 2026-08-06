@@ -24,6 +24,105 @@ struct ModalBudgetDiagnostic
     total::Vector{Float64}
 end
 
+"""
+Pre-allocated workspace for closure-driven diffusivity coupling in spectral space.
+"""
+struct BoundaryLayerWorkspace{T<:AbstractFloat, C<:AbstractClosure}
+    closure::C
+    z_grid::Vector{T}
+    K_m_buffer::Vector{T}
+    K_h_buffer::Vector{T}
+    dK_dz_buffer::Vector{T}
+end
+
+function build_boundary_layer_workspace(disc::SpectralBLGalerkin, closure::AbstractClosure; z_min::Float64 = 2.0)
+    z_grid = collect(range(z_min, disc.H; length = disc.n_modes))
+    T = Float64
+    return BoundaryLayerWorkspace{T, typeof(closure)}(
+        closure,
+        T.(z_grid),
+        zeros(T, disc.n_modes),
+        zeros(T, disc.n_modes),
+        zeros(T, disc.n_modes),
+    )
+end
+
+function _fill_gradient!(dK_dz::Vector{Float64}, K::Vector{Float64}, z::Vector{Float64})
+    n = length(K)
+    (n == length(dK_dz) && n == length(z)) || throw(DimensionMismatch("Gradient buffers must have matching lengths."))
+    if n == 0
+        return dK_dz
+    elseif n == 1
+        dK_dz[1] = 0.0
+        return dK_dz
+    end
+
+    @inbounds begin
+        dK_dz[1] = (K[2] - K[1]) / (z[2] - z[1])
+        for i in 2:(n - 1)
+            dK_dz[i] = (K[i + 1] - K[i - 1]) / (z[i + 1] - z[i - 1])
+        end
+        dK_dz[n] = (K[n] - K[n - 1]) / (z[n] - z[n - 1])
+    end
+    return dK_dz
+end
+
+function update_diffusivity_buffers!(workspace::BoundaryLayerWorkspace{Float64})
+    closure = workspace.closure
+    if closure isa PhysicalSimilarityClosure
+        evaluate_diffusivity_profile!(workspace.K_m_buffer, closure, workspace.z_grid)
+        evaluate_heat_diffusivity_profile!(workspace.K_h_buffer, closure, workspace.z_grid)
+    else
+        adv_scale, diff_scale = _closure_nonlinear_strength(closure)
+        fill!(workspace.K_m_buffer, abs(adv_scale))
+        fill!(workspace.K_h_buffer, abs(diff_scale))
+    end
+    _fill_gradient!(workspace.dK_dz_buffer, workspace.K_m_buffer, workspace.z_grid)
+    return workspace
+end
+
+@inline function _mean_abs(v::Vector{Float64})
+    n = length(v)
+    n == 0 && return 0.0
+    acc = 0.0
+    @inbounds for i in eachindex(v)
+        acc += abs(v[i])
+    end
+    return acc / n
+end
+
+function spectral_rhs!(
+    du::Vector{Float64},
+    u::Vector{Float64},
+    L::Matrix{Float64},
+    tensors::Union{Nothing, SpectralNonlinearTensors},
+    workspace::BoundaryLayerWorkspace{Float64},
+    disc::SpectralBLGalerkin,
+    adv_scale::Float64,
+    diff_scale::Float64,
+)
+    mul!(du, L, u)
+    if !disc.enable_nonlinear || tensors === nothing
+        return du
+    end
+
+    n = disc.n_modes
+    @inbounds for k in 1:n
+        adv = 0.0
+        diff = 0.0
+        for i in 1:n
+            ui = u[i]
+            for j in 1:n
+                uij = ui * u[j]
+                adv += tensors.advection[k, i, j] * uij
+                diff += tensors.diffusion_flux[k, i, j] * uij
+            end
+        end
+        du[k] -= adv_scale * adv + diff_scale * diff
+    end
+    return du
+end
+
 function SpectralBLGalerkin(
     ;
     n_modes::Int = 12,
@@ -352,6 +451,7 @@ function dispatch_solve(
     closure::AbstractClosure,
     tspan::Tuple{Float64, Float64};
     solver = Rodas5P(),
+    u0 = nothing,
     kwargs...
 )
     ModelingToolkit.@variables t
@@ -361,8 +461,12 @@ function dispatch_solve(
     # M * da/dt = -K * a  =>  da/dt = L * a, where L = -(M \ K)
     L = _linear_modal_operator(disc)
 
+    workspace = build_boundary_layer_workspace(disc, closure)
+    update_diffusivity_buffers!(workspace)
+
     tensors = disc.enable_nonlinear ? precompute_nonlinear_tensors(disc) : nothing
-    adv_scale, diff_scale = _closure_nonlinear_strength(closure)
+    adv_scale = _mean_abs(workspace.K_m_buffer)
+    diff_scale = _mean_abs(workspace.K_h_buffer)
     adv_scale *= disc.nonlinear_scale * disc.advection_response_scale
     diff_scale *= disc.nonlinear_scale * disc.diffusivity_response_scale
 
@@ -392,6 +496,13 @@ function dispatch_solve(
     ModelingToolkit.@named modal_ode = ModelingToolkit.ODESystem(eqs, t)
     sys = structural_simplify(modal_ode)
 
-    prob = ODEProblem(sys, ones(disc.n_modes), tspan)
+    init = if u0 === nothing
+        ones(disc.n_modes)
+    else
+        length(u0) == disc.n_modes || throw(DimensionMismatch("u0 length must match disc.n_modes."))
+        Float64.(collect(u0))
+    end
+
+    prob = ODEProblem(sys, init, tspan)
     return solve(prob, solver; kwargs...)
 end

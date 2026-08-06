@@ -16,6 +16,137 @@ When requested to generate, convert, or format tables or figures for reports:
    - Tables: `tbl:short-description` or `tab:short-description`
    - Figures: `fig:short-description`
 
+# Julia Code Standards
+
+When generating Julia source code:
+
+1. Prefer multiple dispatch over conditional type checks.
+2. Use parametric types (`struct Foo{T}`) where appropriate.
+3. All public functions should include Julia docstrings.
+4. Avoid global mutable state.
+5. Use explicit imports instead of `using` when practical.
+6. Keep modules single-responsibility.
+7. Ensure compatibility with JuliaFormatter.jl default style.
+8. Preserve type stability whenever possible.
+9. Favor allocation-free implementations inside tight loops.
+10. Add unit-test examples for all exported APIs.
+
+# Documentation Standards
+
+Every exported type and function should include:
+
+- Mathematical formulation.
+- Symbol definitions.
+- Physical interpretation.
+- Units.
+- References (if applicable).
+- Example usage.
+
+# Mathematical Formatting
+
+Use:
+
+- Inline equations: `$...$`
+- Display equations: `$$...$$`
+- Bold vectors: `\mathbf{x}`
+- Matrices: uppercase bold (`\mathbf{A}`)
+- Scalars: italic (`x`)
+- Operators: `\operatorname{...}`
+
+Prefer notation consistent with GSPT literature.
+
+# Architecture Diagrams
+
+Prefer Mermaid for:
+
+- Dependency graphs.
+- Pipelines.
+- Module relationships.
+- Workflow diagrams.
+
+Prefer TikZ for publication-quality figures.
+
+Always keep Mermaid and TikZ semantically equivalent.
+
+# Testing
+
+Whenever generating new modules:
+
+- Generate corresponding unit tests.
+- Test happy path.
+- Test edge cases.
+- Test invalid inputs.
+- Preserve deterministic behavior.
+
+# API Design
+
+Public APIs should:
+
+- Export only stable interfaces.
+- Avoid exposing implementation details.
+- Prefer immutable structs.
+- Separate construction from execution.
+
+Typical pattern:
+
+```julia
+model = Foo(...)
+result = solve(model)
+```
+
+# Performance
+
+Prefer:
+
+- StaticArrays for small fixed-size matrices.
+- SparseArrays where appropriate.
+- Preallocation in iterative algorithms.
+- `mul!`, `ldiv!`, and in-place operations.
+- `build_function` for repeated symbolic evaluation.
+
+# Scientific Computing Principles
+
+Separate concerns between:
+
+1. Mathematics
+2. Symbolics
+3. Numerical methods
+4. Physics
+5. I/O
+
+Avoid coupling numerical algorithms directly to physical parameterizations.
+
+# Manuscript Generation
+
+When producing manuscript content:
+
+- Generate both Markdown and LaTeX.
+- Preserve equation numbering where possible.
+- Use `booktabs` tables.
+- Generate BibTeX entries when references are requested.
+- Prefer PGFPlots or TikZ over raster figures when feasible.
+
+# Project Philosophy
+
+AtmosphericSlowManifold.jl is organized into orthogonal layers:
+
+Observation
+→ Manifold
+→ Geometry
+→ Discovery
+→ Closures
+→ System
+→ Discretization
+→ Calibration
+
+New functionality should integrate within this architecture rather than introducing cross-layer dependencies.
+
+Geometry should remain independent of operator discovery.
+
+Discovery should remain independent of discretization.
+
+Numerical methods should not embed physical assumptions.
+
 ## Interactive Prompts for VS Code Chat
 
 Use these prompt templates when generating report artifacts.

@@ -1,10 +1,31 @@
 {
-    "sparsity_level": 2,
+    "sparsity_level": 5,
     "residual_norm": 0,
     "diagnostics": {
-        "generated_at_utc": "2026-08-06T18:54:32.379",
+        "obukhov_scaling": {
+            "present": true,
+            "mean": -67.80079899411228,
+            "n": 2273
+        },
+        "similarity_parameters": {
+            "phi_obs": {
+                "n": 2273,
+                "max": 10.346666666666668,
+                "min": -6.2153846153846155,
+                "mean": 1.501097327682144,
+                "std": 1.222159868242126
+            },
+            "zeta": {
+                "n": 2273,
+                "max": 6.15200980198411,
+                "min": 0.0008943192205781552,
+                "mean": 0.3449797272782983,
+                "std": 0.6255960464846746
+            }
+        },
+        "generated_at_utc": "2026-08-06T20:24:14.619",
         "campaign": "SHEBA",
-        "n_columns": 26,
+        "n_columns": 27,
         "n_rows": 2273,
         "source_file": "/Users/davidengland/Documents/GitHub/SpectralBL-Analytics/data/sheba/processed/sheba_input.csv",
         "stats": {
@@ -17,10 +38,10 @@
             },
             "L_obukhov": {
                 "n": 2273,
-                "max": 5590.844840355353,
-                "min": 0.8127425282039423,
-                "mean": 160.84818523596363,
-                "std": 396.2762564782162
+                "max": 34.57800593999999,
+                "min": -3308.647671875001,
+                "mean": -67.80079899411228,
+                "std": 173.8214465274372
             },
             "phi_obs": {
                 "n": 2273,
@@ -41,13 +62,25 @@
     "target_variable": "campaign_metric",
     "terms": [
         {
+            "name": "zeta",
+            "coefficient": 0.9165455817457757
+        },
+        {
             "name": "phi_obs",
             "coefficient": 4.577777777777779
         },
         {
-            "name": "zeta",
-            "coefficient": 0.9165455817457757
+            "name": "L_obukhov",
+            "coefficient": -5.525279999999999
+        },
+        {
+            "name": "sensible_heat_flux",
+            "coefficient": -3
+        },
+        {
+            "name": "ustar",
+            "coefficient": 0.06
         }
     ],
-    "num_terms": 2
+    "num_terms": 5
 }
