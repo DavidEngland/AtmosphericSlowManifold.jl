@@ -1,0 +1,61 @@
+{
+    "sparsity_level": 4,
+    "residual_norm": 0,
+    "diagnostics": {
+        "generated_at_utc": "2026-08-06T18:54:33.324",
+        "campaign": "FLOSS",
+        "n_columns": 55,
+        "n_rows": 70796,
+        "source_file": "/Users/davidengland/Documents/GitHub/SpectralBL-Analytics/data/drafts/trajectories/trajectory_floss.csv",
+        "stats": {
+            "transversality": {
+                "n": 70796,
+                "max": 0.9367638916872789,
+                "min": 3.1517359345603747e-20,
+                "mean": 0.006772268018619755,
+                "std": 0.027700232993378628
+            },
+            "profile_curvature": {
+                "n": 70796,
+                "max": 4.000000000000001,
+                "min": 0.7999999999999999,
+                "mean": 2.2960346514868712,
+                "std": 1.5142533892893653
+            },
+            "L_obukhov": {
+                "n": 0,
+                "max": null,
+                "min": null,
+                "mean": null,
+                "std": null
+            },
+            "most_residual": {
+                "n": 70796,
+                "max": 0.8660253888779066,
+                "min": 0.27381102382576433,
+                "mean": 0.6233240606517301,
+                "std": 0.1405475147905292
+            }
+        }
+    },
+    "target_variable": "campaign_metric",
+    "terms": [
+        {
+            "name": "a_0",
+            "coefficient": -3.211416456177215
+        },
+        {
+            "name": "a_1",
+            "coefficient": 4.396670618925709
+        },
+        {
+            "name": "a_2",
+            "coefficient": -2.821627238906675
+        },
+        {
+            "name": "a_3",
+            "coefficient": 5.093267311860575
+        }
+    ],
+    "num_terms": 4
+}

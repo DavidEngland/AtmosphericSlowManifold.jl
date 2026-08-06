@@ -26,8 +26,60 @@ const EXPECTED_UNITS = Dict(
     :u_star => "m s^-1",
 )
 
+function resolve_sibling_data_dir(
+    ;
+    package_module::Module = AtmosphericSlowManifold,
+    sibling_project::AbstractString = "SpectralBL-Analytics",
+    data_subdir::AbstractString = "data",
+    must_exist::Bool = true,
+)
+    data_dir = normpath(joinpath(pkgdir(package_module), "..", sibling_project, data_subdir))
+    if must_exist && !isdir(data_dir)
+        throw(ArgumentError("Directory does not exist: $(data_dir)"))
+    end
+    return data_dir
+end
+
+function find_data_files(
+    root_dir::AbstractString;
+    extensions::Vector{String} = [".csv", ".nc", ".h5"],
+    recursive::Bool = true,
+)
+    isdir(root_dir) || throw(ArgumentError("Root directory does not exist: $(root_dir)"))
+    extset = Set(lowercase.(extensions))
+    found = String[]
+
+    if recursive
+        for (root, _, files) in walkdir(root_dir)
+            for file in files
+                ext = lowercase(splitext(file)[2])
+                ext in extset || continue
+                push!(found, joinpath(root, file))
+            end
+        end
+    else
+        for file in readdir(root_dir)
+            fpath = joinpath(root_dir, file)
+            isfile(fpath) || continue
+            ext = lowercase(splitext(file)[2])
+            ext in extset || continue
+            push!(found, fpath)
+        end
+    end
+
+    sort!(found)
+    return found
+end
+
 function _normalize_header(name)::Symbol
     return Symbol(replace(lowercase(String(name)), r"[^a-z0-9]+" => "_"))
+end
+
+function _normalize_column_selector(col)::Symbol
+    if col isa Symbol
+        return _normalize_header(col)
+    end
+    return _normalize_header(String(col))
 end
 
 function _canonical_header_map(headers::Vector{Symbol})
@@ -116,6 +168,13 @@ function _read_first_var(ds::NCDataset, names::Vector{Symbol})
     throw(ArgumentError("None of the candidate NetCDF variables found: $(names)"))
 end
 
+function _read_required_var(ds::NCDataset, key::Union{Nothing, Symbol}, fallback_names::Vector{Symbol})
+    if !(key === nothing) && haskey(ds, String(key))
+        return vec(ds[String(key)][:])
+    end
+    return _read_first_var(ds, fallback_names)
+end
+
 """Read tower/radiosonde/LES profile variables from NetCDF into normalized observation columns."""
 function read_tower_netcdf(path::AbstractString)
     ds = NCDataset(path)
@@ -147,5 +206,105 @@ function read_tower_netcdf(path::AbstractString)
         return ObservationTable(cols, units)
     finally
         close(ds)
+    end
+end
+
+"""
+Read observation data with explicit column mapping.
+
+Supports `.csv` and `.nc` files and normalizes output to `ObservationTable`
+with canonical columns: `:z`, `:u`, `:v`, `:theta`, `:q`, `:u_star`.
+"""
+function read_observation_data(
+    path::AbstractString;
+    z_col::Union{Symbol, String} = :z,
+    u_col::Union{Symbol, String} = :u,
+    v_col::Union{Symbol, String} = :v,
+    temp_col::Union{Symbol, String} = :theta,
+    q_col::Union{Nothing, Symbol, String} = nothing,
+    ustar_col::Union{Nothing, Symbol, String} = nothing,
+    delim::Char = ',',
+    default_q::Float64 = 0.0,
+    default_u_star::Float64 = 0.3,
+)
+    ext = lowercase(splitext(path)[2])
+
+    if ext == ".csv"
+        raw, hdr = readdlm(path, delim, header = true)
+        headers = [_normalize_header(h) for h in vec(hdr)]
+        hindex = Dict(h => i for (i, h) in enumerate(headers))
+        nrows = size(raw, 1)
+
+        z_key = _normalize_column_selector(z_col)
+        u_key = _normalize_column_selector(u_col)
+        v_key = _normalize_column_selector(v_col)
+        t_key = _normalize_column_selector(temp_col)
+        q_key = q_col === nothing ? nothing : _normalize_column_selector(q_col)
+        us_key = ustar_col === nothing ? nothing : _normalize_column_selector(ustar_col)
+
+        for key in (z_key, u_key, v_key, t_key)
+            haskey(hindex, key) || throw(ArgumentError("Missing required column $(key) in $(path)."))
+        end
+
+        function col_from_raw(key::Symbol)
+            j = hindex[key]
+            out = Vector{Float64}(undef, nrows)
+            for i in 1:nrows
+                out[i] = _to_f64(raw[i, j])
+            end
+            return out
+        end
+
+        z = col_from_raw(z_key)
+        u = col_from_raw(u_key)
+        v = col_from_raw(v_key)
+        theta = col_from_raw(t_key)
+        q = q_key === nothing ? fill(default_q, nrows) : col_from_raw(q_key)
+        ustar = us_key === nothing ? fill(default_u_star, nrows) : col_from_raw(us_key)
+
+        cols = Dict(
+            :z => z,
+            :u => u,
+            :v => v,
+            :theta => theta,
+            :q => q,
+            :u_star => ustar,
+        )
+        for req in REQUIRED_TOWER_COLUMNS
+            all(isfinite, cols[req]) || throw(ArgumentError("Column $(req) contains non-finite values in $(path)."))
+        end
+        units = Dict(req => EXPECTED_UNITS[req] for req in REQUIRED_TOWER_COLUMNS)
+        return ObservationTable(cols, units)
+    elseif ext == ".nc"
+        ds = NCDataset(path)
+        try
+            z = _read_required_var(ds, Symbol(z_col), [:z, :height, :zf, :zh])
+            u = _read_required_var(ds, Symbol(u_col), [:u, :uwind, :u_component])
+            v = _read_required_var(ds, Symbol(v_col), [:v, :vwind, :v_component])
+            theta = _read_required_var(ds, Symbol(temp_col), [:theta, :potential_temperature, :th])
+            q = q_col === nothing ? fill(default_q, length(z)) : _read_required_var(ds, Symbol(q_col), [:q, :specific_humidity])
+            ustar = ustar_col === nothing ? fill(default_u_star, length(z)) : _read_required_var(ds, Symbol(ustar_col), [:u_star, :ustar, :friction_velocity])
+
+            n = minimum((length(z), length(u), length(v), length(theta), length(q), length(ustar)))
+            n == 0 && throw(ArgumentError("No profile samples found in NetCDF file: $(path)"))
+
+            cols = Dict(
+                :z => Float64.(z[1:n]),
+                :u => Float64.(u[1:n]),
+                :v => Float64.(v[1:n]),
+                :theta => Float64.(theta[1:n]),
+                :q => Float64.(q[1:n]),
+                :u_star => Float64.(ustar[1:n]),
+            )
+            for req in REQUIRED_TOWER_COLUMNS
+                all(isfinite, cols[req]) || throw(ArgumentError("NetCDF variable $(req) contains non-finite values."))
+            end
+            units = Dict(req => EXPECTED_UNITS[req] for req in REQUIRED_TOWER_COLUMNS)
+            return ObservationTable(cols, units)
+        finally
+            close(ds)
+        end
+    else
+        throw(ArgumentError("Unsupported observation file extension $(ext). Use .csv or .nc."))
     end
 end

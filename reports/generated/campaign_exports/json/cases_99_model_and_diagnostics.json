@@ -1,0 +1,61 @@
+{
+    "sparsity_level": 4,
+    "residual_norm": 0,
+    "diagnostics": {
+        "generated_at_utc": "2026-08-06T18:54:36.214",
+        "campaign": "CASES-99",
+        "n_columns": 55,
+        "n_rows": 6538,
+        "source_file": "/Users/davidengland/Documents/GitHub/SpectralBL-Analytics/data/drafts/trajectories/trajectory_cases_99.csv",
+        "stats": {
+            "transversality": {
+                "n": 6538,
+                "max": 0.997164675633794,
+                "min": 9.090605424979136e-6,
+                "mean": 0.11505523706277945,
+                "std": 0.1498773177136874
+            },
+            "profile_curvature": {
+                "n": 6538,
+                "max": 0.7636385708168216,
+                "min": 0.009468599094533769,
+                "mean": 0.1803414250169754,
+                "std": 0.10436024409954696
+            },
+            "L_obukhov": {
+                "n": 0,
+                "max": null,
+                "min": null,
+                "mean": null,
+                "std": null
+            },
+            "most_residual": {
+                "n": 6538,
+                "max": 0.9258200968380961,
+                "min": 0.025062553439141773,
+                "mean": 0.4223555737807107,
+                "std": 0.23398207488079908
+            }
+        }
+    },
+    "target_variable": "campaign_metric",
+    "terms": [
+        {
+            "name": "a_0",
+            "coefficient": -8.064472273250173
+        },
+        {
+            "name": "a_1",
+            "coefficient": 9.481264451118726
+        },
+        {
+            "name": "a_2",
+            "coefficient": -6.972783092649322
+        },
+        {
+            "name": "a_3",
+            "coefficient": 11.547218478078122
+        }
+    ],
+    "num_terms": 4
+}

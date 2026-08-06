@@ -49,3 +49,58 @@ using NCDatasets
         @test obs_nc.units[:q] == "kg kg^-1"
     end
 end
+
+@testset "Observation path utilities and mapped ingestion" begin
+    data_dir = resolve_sibling_data_dir(; must_exist = false)
+    @test endswith(data_dir, joinpath("SpectralBL-Analytics", "data"))
+
+    mktempdir() do d
+        mkpath(joinpath(d, "nested"))
+        csv_path = joinpath(d, "profiles.csv")
+        nc_path = joinpath(d, "nested", "profiles.nc")
+        txt_path = joinpath(d, "notes.txt")
+
+        open(csv_path, "w") do io
+            write(io, "height,u_velocity,v_velocity,potential_temp\n")
+            write(io, "2.0,1.0,0.1,289.0\n")
+            write(io, "20.0,2.0,0.2,290.0\n")
+        end
+
+        open(txt_path, "w") do io
+            write(io, "ignore me\n")
+        end
+
+        ds = NCDataset(nc_path, "c")
+        try
+            defDim(ds, "n", 1)
+            zvar = defVar(ds, "z", Float64, ("n",))
+            uvar = defVar(ds, "u", Float64, ("n",))
+            vvar = defVar(ds, "v", Float64, ("n",))
+            tvar = defVar(ds, "theta", Float64, ("n",))
+            zvar[:] = [5.0]
+            uvar[:] = [1.2]
+            vvar[:] = [0.0]
+            tvar[:] = [289.5]
+        finally
+            close(ds)
+        end
+
+        files = find_data_files(d; extensions = [".csv", ".nc"], recursive = true)
+        @test length(files) == 2
+        @test csv_path in files
+        @test nc_path in files
+
+        obs = read_observation_data(
+            csv_path;
+            z_col = :height,
+            u_col = :u_velocity,
+            v_col = :v_velocity,
+            temp_col = :potential_temp,
+        )
+        @test obs isa ObservationTable
+        @test obs.columns[:z] == [2.0, 20.0]
+        @test obs.columns[:u] == [1.0, 2.0]
+        @test obs.columns[:q] == [0.0, 0.0]
+        @test obs.columns[:u_star] == [0.3, 0.3]
+    end
+end

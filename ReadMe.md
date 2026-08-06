@@ -186,6 +186,59 @@ The test suite covers:
 
 ---
 
+## Production Campaign Exports
+
+The repository includes a production batch export pipeline for campaign artifacts derived from sibling `SpectralBL-Analytics` data sources.
+
+### Command Reference
+
+```bash
+# Execute end-to-end extraction across CASES-99, FLOSS, BLLAST, and SHEBA
+make campaign-export
+
+# Display the generated multi-campaign summary table in the terminal
+make campaign-summary
+
+# Remove generated campaign artifact directories
+make campaign-clean
+
+```
+
+Generate all current outputs for CASES-99, FLOSS, BLLAST, and SHEBA:
+
+```bash
+make campaign-export
+
+```
+
+This runs [scripts/run_campaign_exports.jl](scripts/run_campaign_exports.jl) and writes artifacts under [reports/generated/campaign_exports](reports/generated/campaign_exports).
+
+Available artifact groups:
+
+* [reports/generated/campaign_exports/csv](reports/generated/campaign_exports/csv): raw campaign extracts and compact diagnostic summary tables
+* [reports/generated/campaign_exports/json](reports/generated/campaign_exports/json): discovered-model-style coefficient payloads and serialized diagnostics
+* [reports/generated/campaign_exports/netcdf](reports/generated/campaign_exports/netcdf): exported 2D stability / Richardson-number fields
+* [reports/generated/campaign_exports/figures](reports/generated/campaign_exports/figures): campaign metric plots and Ri heatmaps where available
+* [reports/generated/campaign_exports/tables/campaign_summary.md](reports/generated/campaign_exports/tables/campaign_summary.md): markdown manifest of generated outputs
+* [reports/generated/campaign_exports/tables/campaign_summary.tex](reports/generated/campaign_exports/tables/campaign_summary.tex): LaTeX report table
+
+To print the current generated manifest directly:
+
+```bash
+make campaign-summary
+
+```
+
+### Target Overview
+
+| Target | Executable Command | Primary Output / Action |
+|---|---|---|
+| `make campaign-export` | `julia --project=. scripts/run_campaign_exports.jl` | Exports CSV, JSON, NetCDF, and PNG artifacts under `reports/generated/campaign_exports/` |
+| `make campaign-summary` | `cat reports/generated/campaign_exports/tables/campaign_summary.md` | Prints campaign stats and generated manifest summary |
+| `make campaign-clean` | `rm -rf reports/generated/campaign_exports/` | Removes generated campaign outputs |
+
+---
+
 ## License
 
 This project is licensed under the MIT License.

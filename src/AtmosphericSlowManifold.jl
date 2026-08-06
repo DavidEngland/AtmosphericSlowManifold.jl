@@ -28,7 +28,12 @@ include("Discretization/Backends/MethodOfLinesFD.jl")
 include("Discretization/Backends/SpectralBLGalerkin.jl")
 
 include("Discovery/Discovery.jl")
-include("Calibration/HierarchicalTuring.jl")
+include("Calibration/Calibration.jl")
+include("System/ExportUtilities.jl")
+
+using .Calibration: AbstractCalibrationAlgorithm, BayesianMCMC, MaximumLikelihood, VariationalInference
+using .Calibration: CalibrationResult, calibrate, dispatch_calibrate
+using .ExportUtilities: export_to_csv, export_to_json, export_to_netcdf
 
 export ManifoldState, FoldConstraint, fold_residual, fold_transversality
 export Geometry
@@ -39,8 +44,10 @@ export eddy_momentum, eddy_heat, surface_flux
 export AbstractDiscretization, MethodOfLinesFD, SpectralBLGalerkin
 export generate_stretched_grid, solve_scm
 export SpectralNonlinearTensors, precompute_nonlinear_tensors
+export ModalBudgetDiagnostic, evaluate_modal_budget
 
-export ObservationTable, read_tower_csv, read_tower_netcdf, project_to_gegenbauer
+export ObservationTable, read_tower_csv, read_tower_netcdf, read_observation_data, project_to_gegenbauer
+export resolve_sibling_data_dir, find_data_files
 
 export GegenbauerBasis, build_weak_library, fit_wsindy_jump, extract_closure
 export discover_closure
@@ -55,7 +62,12 @@ export evaluate_test_function, evaluate_dt_test_function, evaluate_dz2_test_func
 export WeakFormMatrix, assemble_weak_system
 export AbstractSparseOptimizer, STRidge, ConstrainedQP, solve_sparse_regression
 
+export Calibration
+export AbstractCalibrationAlgorithm, BayesianMCMC, MaximumLikelihood, VariationalInference
+export CalibrationResult, calibrate, dispatch_calibrate
+
 export build_pde_system, default_surface_flux
+export export_to_csv, export_to_json, export_to_netcdf
 
 export verify_closure
 

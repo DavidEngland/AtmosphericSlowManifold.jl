@@ -1,0 +1,61 @@
+{
+    "sparsity_level": 4,
+    "residual_norm": 0,
+    "diagnostics": {
+        "generated_at_utc": "2026-08-06T18:54:26.879",
+        "campaign": "BLLAST",
+        "n_columns": 55,
+        "n_rows": 5600,
+        "source_file": "/Users/davidengland/Documents/GitHub/SpectralBL-Analytics/data/drafts/trajectories/trajectory_bllast.csv",
+        "stats": {
+            "transversality": {
+                "n": 5598,
+                "max": 0.9999392753017111,
+                "min": 4.1941256463434144e-18,
+                "mean": 0.10525194756472353,
+                "std": 0.1484196298630289
+            },
+            "profile_curvature": {
+                "n": 5600,
+                "max": 0.43095247210184534,
+                "min": 0.034081294817340166,
+                "mean": 0.17575684242228307,
+                "std": 0.08365401099702208
+            },
+            "L_obukhov": {
+                "n": 0,
+                "max": null,
+                "min": null,
+                "mean": null,
+                "std": null
+            },
+            "most_residual": {
+                "n": 5600,
+                "max": 0.8944190198278845,
+                "min": 0.4669885334052841,
+                "mean": 0.5732656424529264,
+                "std": 0.1254843486732049
+            }
+        }
+    },
+    "target_variable": "campaign_metric",
+    "terms": [
+        {
+            "name": "a_0",
+            "coefficient": -2.2762860715447286
+        },
+        {
+            "name": "a_1",
+            "coefficient": 3.1612808274341346
+        },
+        {
+            "name": "a_2",
+            "coefficient": -2.025910697548984
+        },
+        {
+            "name": "a_3",
+            "coefficient": 3.6442117085420076
+        }
+    ],
+    "num_terms": 4
+}
