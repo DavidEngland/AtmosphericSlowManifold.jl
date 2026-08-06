@@ -19,8 +19,8 @@ using ModelingToolkit
         ),
     )
 
-    ModelingToolkit.@variables zsym
-    candidates = Num[1.0, zsym]
+    ModelingToolkit.@variables z
+    candidates = Num[1.0, z]
     basis = GegenbauerBasis(n_spatial = 6, n_temporal = 1, lambda = 0.75)
 
     G, b = build_weak_library(obs, basis, candidates; target = :u)

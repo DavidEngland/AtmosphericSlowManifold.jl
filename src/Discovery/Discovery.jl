@@ -1,0 +1,8 @@
+include("SymbolicExtraction.jl")
+include("LibraryBuilder.jl")
+include("ConstraintBuilder.jl")
+include("TestFunctions.jl")
+include("WeakForms.jl")
+include("SparseRegression.jl")
+include("WSINDyEngine.jl")
+include("SymbolicVerification.jl")

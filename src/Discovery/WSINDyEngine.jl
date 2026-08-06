@@ -1,86 +1,184 @@
-using HiGHS
-
 struct GegenbauerBasis
     n_spatial::Int
     n_temporal::Int
     lambda::Float64
 end
 
+function _discover_feature_key(f::StateVariable)
+    return f.name
+end
+
+function _discover_feature_key(f::DiagnosticVariable)
+    return f.name
+end
+
+function _discover_feature_key(f::SpatialDerivative)
+    return Symbol("d$(f.order)_$(f.variable)")
+end
+
+function _discover_finite_diff_col(col::Vector{Float64}, z::Vector{Float64}, order::Int)
+    order >= 1 || return copy(col)
+    d = copy(col)
+    for _ in 1:order
+        out = zeros(length(col))
+        out[1] = (d[2] - d[1]) / (z[2] - z[1])
+        for i in 2:(length(col) - 1)
+            out[i] = (d[i + 1] - d[i - 1]) / (z[i + 1] - z[i - 1])
+        end
+        out[end] = (d[end] - d[end - 1]) / (z[end] - z[end - 1])
+        d = out
+    end
+    return d
+end
+
+function _feature_column_from_obs(obs::ObservationTable, feature::AbstractBasisFeature)
+    if feature isa StateVariable || feature isa DiagnosticVariable
+        key = _discover_feature_key(feature)
+        haskey(obs.columns, key) || throw(KeyError(key))
+        return Float64.(obs.columns[key])
+    elseif feature isa SpatialDerivative
+        haskey(obs.columns, :z) || throw(ArgumentError("ObservationTable must include :z for derivative features."))
+        key = feature.variable
+        haskey(obs.columns, key) || throw(KeyError(key))
+        return _discover_finite_diff_col(Float64.(obs.columns[key]), Float64.(obs.columns[:z]), feature.order)
+    end
+    throw(ArgumentError("Unsupported basis feature type $(typeof(feature))."))
+end
+
+function _build_feature_evaluation_grid(obs::ObservationTable, library::FeatureLibrary)
+    n_features = length(library.features)
+    n_features == 0 && return zeros(0, 0)
+
+    cols = [_feature_column_from_obs(obs, f) for f in library.features]
+    ns = length(cols[1])
+    all(length(c) == ns for c in cols) || throw(ArgumentError("Feature columns in library are inconsistent lengths."))
+
+    grid = zeros(ns, n_features)
+    for j in 1:n_features
+        grid[:, j] = cols[j]
+    end
+    return grid
+end
+
+"""
+Unified Tier-1 discovery pipeline from observation space to `DiscoveredModel`.
+
+Pipeline:
+  1) weak-form assembly
+  2) physical constraint assembly
+  3) sparse optimization
+  4) typed OperatorTerm construction
+"""
+function discover(
+    obs::ObservationTable,
+    library::FeatureLibrary,
+    constraints::Vector{<:AbstractPhysicalConstraint},
+    test_family::AbstractTestFunctionFamily,
+    optimizer::AbstractSparseOptimizer;
+    target_variable::Symbol = :K_m,
+    target::Symbol = :u,
+    threshold::Float64 = 1e-8,
+)
+    weak_sys = assemble_weak_system(obs, test_family, library; target = target)
+
+    eval_grid = _build_feature_evaluation_grid(obs, library)
+    constraint_matrix = assemble_constraint_matrix(constraints, library.features, eval_grid)
+
+    coeffs = if optimizer isa ConstrainedQP
+        solve_sparse_regression(
+            weak_sys.G,
+            weak_sys.b,
+            optimizer;
+            A_ineq = constraint_matrix.A_ineq,
+            b_ineq = constraint_matrix.b_ineq,
+        )
+    elseif optimizer isa STRidge
+        if !isempty(constraints)
+            throw(ArgumentError("STRidge currently does not support inequality constraints; use ConstrainedQP or pass an empty constraint set."))
+        end
+        solve_sparse_regression(weak_sys.G, weak_sys.b, optimizer)
+    else
+        throw(ArgumentError("Unsupported optimizer type $(typeof(optimizer))."))
+    end
+
+    terms = OperatorTerm{Float64}[]
+    for (i, feat) in enumerate(library.features)
+        abs(coeffs[i]) <= threshold && continue
+        push!(terms, OperatorTerm{Float64}(coeffs[i], BasisOperator[BasisOperator(feat, 1.0)]))
+    end
+
+    residual_norm = norm(weak_sys.G * coeffs - weak_sys.b)
+    model = DiscoveredModel{Float64}(target_variable, terms, residual_norm, length(terms))
+    return model
+end
+
+function _candidate_to_basis(expr::Num)
+    vars = Symbolics.get_variables(expr)
+    if isempty(vars)
+        return BasisOperator[]
+    end
+
+    if length(vars) == 1
+        sym = Symbol(Symbolics.tosymbol(vars[1]))
+        return BasisOperator[BasisOperator(StateVariable(sym), 1.0)]
+    end
+
+    # Fallback for composite candidates: treat as diagnostic symbolic token.
+    label = Symbol(replace(string(expr), r"\s+" => ""))
+    return BasisOperator[BasisOperator(DiagnosticVariable(label), 1.0)]
+end
+
+"""
+Discover a WSINDy closure from observations using the modularized pipeline.
+
+Returns a named tuple with weak matrices, coefficients, discovered IR model,
+and a constructed `WSINDyClosure`.
+"""
+function discover_closure(
+    data::ObservationTable,
+    candidates::Vector{Num};
+    target::Symbol = :u,
+    basis::GegenbauerBasis = GegenbauerBasis(),
+    lambda::Float64 = 1e-3,
+    positivity_constraints::Bool = true,
+    diffusivity_indices::Vector{Int} = collect(1:length(candidates)),
+    A::Union{Nothing, Matrix{Float64}} = nothing,
+    d::Union{Nothing, Vector{Float64}} = nothing,
+    threshold::Float64 = 1e-8,
+)
+    G, b = build_weak_library(data, basis, candidates; target = target)
+    coeffs = fit_wsindy_jump(
+        G,
+        b,
+        candidates;
+        lambda = lambda,
+        positivity_constraints = positivity_constraints,
+        diffusivity_indices = diffusivity_indices,
+        A = A,
+        d = d,
+    )
+
+    terms = OperatorTerm{Float64}[]
+    for (coef, cand) in zip(coeffs, candidates)
+        abs(coef) <= threshold && continue
+        push!(terms, OperatorTerm{Float64}(coef, _candidate_to_basis(cand)))
+    end
+
+    discovered = DiscoveredModel{Float64}(target, terms, norm(G * coeffs - b), length(terms))
+    closure = extract_closure(coeffs, candidates; threshold = threshold)
+
+    return (
+        weak_system = WeakFormMatrix(G, b, AbstractBasisFeature[]),
+        coefficients = coeffs,
+        discovered_model = discovered,
+        closure = closure,
+    )
+end
+
 function GegenbauerBasis(; n_spatial::Int = 8, n_temporal::Int = 1, lambda::Float64 = 0.75)
     n_spatial > 0 || throw(ArgumentError("n_spatial must be positive"))
     n_temporal > 0 || throw(ArgumentError("n_temporal must be positive"))
     return GegenbauerBasis(n_spatial, n_temporal, lambda)
-end
-
-function _engine_gegenbauerC(n::Int, lambda::Float64, x::Float64)
-    n == 0 && return 1.0
-    n == 1 && return 2.0 * lambda * x
-
-    c_nm2 = 1.0
-    c_nm1 = 2.0 * lambda * x
-    for k in 2:n
-        c_n = (2.0 * (k + lambda - 1.0) * x * c_nm1 - (k + 2.0 * lambda - 2.0) * c_nm2) / k
-        c_nm2 = c_nm1
-        c_nm1 = c_n
-    end
-    return c_nm1
-end
-
-function _normalize_axis(v::Vector{Float64})
-    vmin, vmax = extrema(v)
-    vmax > vmin || throw(ArgumentError("Axis must be non-degenerate for weak projection."))
-    return @. 2.0 * (v - vmin) / (vmax - vmin) - 1.0
-end
-
-function _trapz_weighted(x::Vector{Float64}, f::Vector{Float64}, g::Vector{Float64}, lambda::Float64)
-    acc = 0.0
-    for i in 1:(length(x) - 1)
-        x1 = x[i]
-        x2 = x[i + 1]
-        w1 = max(1e-12, (1.0 - x1^2)^(lambda - 0.5))
-        w2 = max(1e-12, (1.0 - x2^2)^(lambda - 0.5))
-        y1 = f[i] * g[i] * w1
-        y2 = f[i + 1] * g[i + 1] * w2
-        acc += 0.5 * (y1 + y2) * (x2 - x1)
-    end
-    return acc
-end
-
-function _candidate_value(expr::Num, i::Int, z::Vector{Float64}, data::ObservationTable)
-    vars = Symbolics.get_variables(expr)
-    if isempty(vars)
-        raw = Symbolics.value(expr)
-        if raw isa Number
-            return float(raw)
-        end
-        parsed = tryparse(Float64, string(raw))
-        parsed === nothing && throw(ArgumentError("Constant candidate expression could not be evaluated numerically."))
-        return parsed
-    end
-
-    subs = Dict{Num, Any}()
-    for v in vars
-        s = lowercase(String(Symbolics.tosymbol(v)))
-        if s == "z"
-            subs[v] = z[i]
-            continue
-        end
-
-        # Accept explicit column names when candidates use atmospheric symbols.
-        if haskey(data.columns, Symbol(s))
-            subs[v] = data.columns[Symbol(s)][i]
-            continue
-        end
-
-        if s == "u_star" && haskey(data.columns, :u_star)
-            subs[v] = data.columns[:u_star][i]
-            continue
-        end
-    end
-
-    val = Symbolics.value(Symbolics.substitute(expr, subs))
-    val isa Number || throw(ArgumentError("Candidate expression could not be evaluated numerically at sample index $(i)."))
-    return float(val)
 end
 
 """
@@ -90,41 +188,9 @@ This initial engine uses weighted Gegenbauer weak projections in vertical space
 and optional polynomial time windows when a `:t` column is present.
 """
 function build_weak_library(data::ObservationTable, test_basis::GegenbauerBasis, candidates::Vector{Num}; target::Symbol = :u)
-    haskey(data.columns, :z) || throw(ArgumentError("ObservationTable must contain :z for weak library construction."))
-    haskey(data.columns, target) || throw(ArgumentError("ObservationTable is missing target column $(target)."))
-    isempty(candidates) && throw(ArgumentError("candidates cannot be empty."))
-
-    z = data.columns[:z]
-    y = data.columns[target]
-    n = length(z)
-    n >= 3 || throw(ArgumentError("Need at least 3 vertical levels for weak integration."))
-
-    x = _normalize_axis(z)
-    tnorm = haskey(data.columns, :t) ? _normalize_axis(data.columns[:t]) : ones(n)
-
-    nrows = test_basis.n_spatial * test_basis.n_temporal
-    p = length(candidates)
-    G = zeros(nrows, p)
-    b = zeros(nrows)
-
-    row = 0
-    for is in 1:test_basis.n_spatial
-        psi = [_engine_gegenbauerC(is - 1, test_basis.lambda, xv) for xv in x]
-        for jt in 1:test_basis.n_temporal
-            row += 1
-            omega = @. tnorm^(jt - 1)
-            phi = psi .* omega
-
-            b[row] = _trapz_weighted(x, phi, y, test_basis.lambda)
-
-            for cidx in 1:p
-                vals = [Float64(_candidate_value(candidates[cidx], i, z, data)) for i in 1:n]
-                G[row, cidx] = _trapz_weighted(x, phi, vals, test_basis.lambda)
-            end
-        end
-    end
-
-    return G, b
+    family = GegenbauerFamily(test_basis.lambda, test_basis.n_spatial)
+    wf = assemble_weak_system(data, family, candidates; target = target, n_temporal = test_basis.n_temporal)
+    return wf.G, wf.b
 end
 
 """
@@ -140,36 +206,35 @@ function fit_wsindy_jump(
     lambda::Float64 = 1e-3,
     positivity_constraints::Bool = true,
     diffusivity_indices::Vector{Int} = collect(1:length(candidates)),
+    A::Union{Nothing, Matrix{Float64}} = nothing,
+    d::Union{Nothing, Vector{Float64}} = nothing,
 )
     size(G, 1) == length(b) || throw(ArgumentError("G and b dimensions are inconsistent."))
     size(G, 2) == length(candidates) || throw(ArgumentError("G columns must match candidate count."))
 
     p = length(candidates)
-    model = JuMP.Model(HiGHS.Optimizer)
-    JuMP.set_silent(model)
-
-    JuMP.@variable(model, xi[1:p])
-    JuMP.@variable(model, t[1:p] >= 0)
-    JuMP.@constraint(model, [j in 1:p], t[j] >= xi[j])
-    JuMP.@constraint(model, [j in 1:p], t[j] >= -xi[j])
+    A_ineq = Matrix{Float64}(undef, 0, p)
+    b_ineq = Float64[]
 
     if positivity_constraints
-        for j in diffusivity_indices
-            JuMP.@constraint(model, xi[j] >= 0)
+        A_pos = zeros(length(diffusivity_indices), p)
+        for (r, j) in enumerate(diffusivity_indices)
+            A_pos[r, j] = 1.0
         end
+        A_ineq = vcat(A_ineq, A_pos)
+        b_ineq = vcat(b_ineq, zeros(length(diffusivity_indices)))
     end
 
-    JuMP.@objective(
-        model,
-        Min,
-        0.5 * sum((sum(G[i, j] * xi[j] for j in 1:p) - b[i])^2 for i in 1:size(G, 1)) + lambda * sum(t)
-    )
+    if !(A === nothing)
+        d === nothing && throw(ArgumentError("d must be provided when A is specified."))
+        size(A, 2) == p || throw(ArgumentError("A must have $(p) columns."))
+        size(A, 1) == length(d) || throw(ArgumentError("A row count must match length(d)."))
+        A_ineq = vcat(A_ineq, A)
+        b_ineq = vcat(b_ineq, d)
+    end
 
-    JuMP.optimize!(model)
-    status = JuMP.termination_status(model)
-    status in (JuMP.MOI.OPTIMAL, JuMP.MOI.LOCALLY_SOLVED) || throw(ArgumentError("WSINDy optimization failed with status $(status)."))
-
-    return Float64.(JuMP.value.(xi))
+    solver = ConstrainedQP(lambda = lambda)
+    return solve_sparse_regression(G, b, solver; A_ineq = A_ineq, b_ineq = b_ineq)
 end
 
 function _candidate_to_state(expr::Num, state::ManifoldState)
