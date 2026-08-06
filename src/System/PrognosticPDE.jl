@@ -4,7 +4,9 @@ function build_pde_system(
     t_end::Float64 = 86400.0,
     coriolis::Float64 = 1e-4,
     v_geostrophic::Float64 = 8.0,
-    radiation::Float64 = 0.0
+    radiation::Float64 = 0.0,
+    z0_value::Float64 = 0.1,
+    u_star_value::Float64 = 0.3
 )
     ModelingToolkit.@parameters t z
     ModelingToolkit.@variables u(..) v(..) theta(..)
@@ -13,9 +15,29 @@ function build_pde_system(
     Dz = ModelingToolkit.Differential(z)
 
     state = ManifoldState()
-    km = eddy_momentum(closure, state)
-    kh = eddy_heat(closure, state)
-    flux0 = default_surface_flux(closure, state)
+
+    # Bind intrinsic manifold symbols to prognostic/diagnostic fields so
+    # closures discovered in manifold coordinates are executable in PDE space.
+    manifold_subs = Dict(
+        state.eta1 => u(t, z),
+        state.eta2 => v(t, z),
+        state.eta3 => theta(t, z),
+        state.r => sqrt(u(t, z)^2 + v(t, z)^2 + 1e-12),
+        state.omega => atan(v(t, z), u(t, z) + 1e-12),
+        state.chi => Dz(theta(t, z)),
+        state.pi_g => Dz(u(t, z))^2 + Dz(v(t, z))^2,
+        state.lambdamin => one(z),
+        state.u => u(t, z),
+        state.v => v(t, z),
+        state.theta => theta(t, z),
+        state.q => 0.0,
+        state.u_star => u_star_value,
+        state.z0 => z0_value,
+    )
+
+    km = ModelingToolkit.expand_derivatives(Symbolics.substitute(eddy_momentum(closure, state), manifold_subs))
+    kh = ModelingToolkit.expand_derivatives(Symbolics.substitute(eddy_heat(closure, state), manifold_subs))
+    flux0 = ModelingToolkit.expand_derivatives(Symbolics.substitute(default_surface_flux(closure, state), manifold_subs))
 
     eqs = [
         Dt(u(t, z)) ~ coriolis * (v(t, z) - v_geostrophic) - Dz(-km * Dz(u(t, z))),

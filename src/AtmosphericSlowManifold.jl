@@ -26,6 +26,7 @@ include("Discretization/StretchedGrid.jl")
 include("Discretization/Backends/MethodOfLinesFD.jl")
 include("Discretization/Backends/SpectralBLGalerkin.jl")
 
+include("Discovery/WSINDyEngine.jl")
 include("Discovery/SymbolicVerification.jl")
 include("Calibration/HierarchicalTuring.jl")
 
@@ -38,6 +39,8 @@ export AbstractDiscretization, MethodOfLinesFD, SpectralBLGalerkin
 export generate_stretched_grid, solve_scm
 
 export ObservationTable, read_tower_csv, read_tower_netcdf, project_to_gegenbauer
+
+export GegenbauerBasis, build_weak_library, fit_wsindy_jump, extract_closure
 
 export build_pde_system, default_surface_flux
 

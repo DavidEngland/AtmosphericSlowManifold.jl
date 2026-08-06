@@ -1513,3 +1513,105 @@ mkdir -p AtmosphericSlowManifold.jl/test
 
 Followed by generating `Project.toml` and `src/AtmosphericSlowManifold.jl`.
 
+---
+
+`AtmosphericSlowManifold.jl` is now fully scaffolded, compiled, and validated across its symbolic operator bindings, ingestion schema, invariance test suite, and Gegenbauer spectral engine.
+
+---
+
+### Key Capabilities Now Active in `AtmosphericSlowManifold.jl`
+
+* **Manifold Operator Substitution (`PrognosticPDE.jl`):** Symbolic binding connects intrinsic manifold variables $(\eta_1, \eta_2, \eta_3, R, \Omega, \chi, \Pi_G, \lambda_{\min})$ directly to prognostic velocity and potential temperature profile fields ($u, v, \theta$) and their spatial derivatives before derivative expansion.
+* **Strict Multi-Format Ingestion (`DataIngestion.jl`):** Enforces unit and column constraints ($z \, [\text{m}], u, v, u_* \, [\text{m s}^{-1}], \theta \, [\text{K}], q \, [\text{kg kg}^{-1}]$) with automated alias resolution across CSV tower records and NetCDF profiles (radiosondes, Cabauw, NEON, LES outputs).
+* **Gegenbauer Galerkin Backend (`SpectralBLGalerkin.jl`):** Replaced placeholder modal decay with true Galerkin projection mechanics, evaluating weighted mass $\mathbf{M}_{ij} = \langle G_i^{(\lambda)}, G_j^{(\lambda)} \rangle_{\lambda}$ and stiffness $\mathbf{K}_{ij} = \langle G_i^{(\lambda)}, \frac{\partial^2}{\partial z^2} G_j^{(\lambda)} \rangle_{\lambda}$ matrices via Gegenbauer recurrence relations.
+* **Architecture Invariance Verification (`test_scm_backends.jl`):** Asserts that swapping physics closures (`MOSTClosure` $\leftrightarrow$ `WSINDyClosure`) and discretization backends (`MethodOfLinesFD` $\leftrightarrow$ `SpectralBLGalerkin`) produces identical `PDESystem` call signatures and execution return codes.
+
+---
+
+### Suggested Next Objectives
+
+1. **JuMP WSINDy Library Assembly (`Discovery/WSINDyEngine.jl`):** Connect the weak-form integral matrix $\mathbf{G}\mathbf{\Xi} \approx \mathbf{b}$ using `JuMP.jl` to perform constrained STRidge sparse regression over Gegenbauer space-time test domains.
+2. **GSPT Fold Surface Visualization:** Expose a plotting utility over `GSPTDiagnostics.jl` to compute and render the $\det(J_{\mathbf{y}}) = 0$ surface against trajectory projections in $(R, \chi, \Pi_G)$ space.
+3. **Site Calibration (`Calibration/HierarchicalTuring.jl`):** Implement the `Turing.jl` MCMC workflow to split global functional parameters $\mathbf{\Xi}_{\text{global}}$ from local surface adapters ($z_0, z_{0h}, \text{LAI}, \Pi_G$).
+
+---
+
+# AtmosphericSlowManifold.jl — Project Status Report
+
+`AtmosphericSlowManifold.jl` is scaffolded, precompiled, and passing all unit and integration tests. The package establishes a modular Julia framework that embeds Weak Sparse Identification of Non-Linear Dynamics (WSINDy) inside a Geometric Singular Perturbation Theory (GSPT) manifold engine, decoupling symbolic closure discovery from spatial discretization.
+
+---
+
+## 1. Completed System Architecture
+
+```
+                       [ Observation Space ]
+                Tower CSV & NetCDF Profile Readers
+                                 │
+                                 ▼
+                        [ Manifold Space ]
+           ManifoldState (η_i, R, Ω, χ, Π_G, λ_min)
+             & GSPT Fold Diagnostics (det(J_y) = 0)
+                                 │
+                                 ▼
+                     [ Symbolic Closure API ]
+           AbstractClosure: WSINDyClosure & MOSTClosure
+                                 │
+                                 ▼
+                    [ Prognostic PDE System ]
+             PrognosticPDE.jl (ModelingToolkit.jl)
+                                 │
+                 ┌───────────────┴───────────────┐
+                 ▼                               ▼
+       [ MethodOfLinesFD ]              [ SpectralBLGalerkin ]
+    Stretched Grid FD Backend        Modal ODE Gegenbauer Engine
+     (Operational / WRF SCM)              (ROM / GSPT Bifurcation)
+
+```
+
+---
+
+## 2. Core Capabilities Implemented
+
+* **Intrinsic Manifold State (`src/Manifold/`):**
+* `ManifoldState` defines symbolic coordinates $(\eta_1, \eta_2, \eta_3, R, \Omega, \chi, \Pi_G, \lambda_{\min})$ and physical state variables ($u, v, \theta, q, u_*, z_0$).
+* `GSPTDiagnostics.jl` evaluates loss of normal hyperbolicity along slow manifold trajectories via fast Jacobian determinants $\det(J_{\mathbf{y}}) = 0$.
+
+
+* **Composable Symbolic Closures (`src/Closures/`):**
+* `AbstractClosure` interface enforcing standard dispatch for `eddy_momentum`, `eddy_heat`, and `surface_flux`.
+* `WSINDyClosure` holds discovered symbolic expressions; `MOSTClosure` provides Monin-Obukhov similarity baseline functions.
+
+
+* **Prognostic PDE Engine (`src/System/`):**
+* `PrognosticPDE.jl` constructs `ModelingToolkit.PDESystem` conservation equations for momentum and potential temperature.
+* Symbolic substitution maps manifold variables to state profile expressions before executing derivative expansions (`expand_derivatives`).
+
+
+* **Dual Discretization Backends (`src/Discretization/`):**
+* `MethodOfLinesFD`: Stretched vertical grid generator using hyperbolic tangent clustering ($z_i = H \frac{\tanh(\alpha i / N)}{\tanh(\alpha)}$) wired to `MethodOfLines.jl`.
+* `SpectralBLGalerkin`: Reduced-order Galerkin solver evaluating weighted Gegenbauer mass ($\mathbf{M}$) and stiffness ($\mathbf{K}$) matrices via recurrence relations.
+
+
+* **Strict Observation Ingestion (`src/Observation/`):**
+* `DataIngestion.jl` enforces strict unit and column validation ($z\,[\text{m}], u, v, u_*\,[\text{m s}^{-1}], \theta\,[\text{K}], q\,[\text{kg kg}^{-1}]$) across CSV records and NetCDF profile files (radiosondes, Cabauw, NEON, LES outputs).
+
+
+
+---
+
+## 3. Test & Verification Status
+
+Running `julia --project=. -e 'using AtmosphericSlowManifold; include("test/runtests.jl")'` yields green passes across all test modules:
+
+1. **`test_wsindy_discovery.jl`:** Confirms symbolic expression substitution, unit consistency, and operator dispatch for `WSINDyClosure`.
+2. **`test_gspt_fold.jl`:** Validates fold condition evaluation and hyperbolicity loss checks on manifold trajectories.
+3. **`test_scm_backends.jl`:** Proves **architecture invariance**—swapping closures (`MOSTClosure` $\leftrightarrow$ `WSINDyClosure`) and backends (`MethodOfLinesFD` $\leftrightarrow$ `SpectralBLGalerkin`) executes without modifying the prognostic PDE signature or function calls.
+
+---
+
+## 4. Immediate Roadmap & Pending Work
+
+1. **JuMP WSINDy Matrix Engine (`src/Discovery/WSINDyEngine.jl`):** Connect weak-form space-time integral matrices $\mathbf{G}\mathbf{\Xi} \approx \mathbf{b}$ to `JuMP.jl` for constrained STRidge sparse regression over Gegenbauer test function domains.
+2. **Full Nonlinear Spectral Projections (`src/Discretization/Backends/SpectralBLGalerkin.jl`):** Extend the Gegenbauer linear stiffness engine to project nonlinear advection and closure terms $\langle G_n^{(\lambda)}, \mathcal{N}(\mathbf{U}) \rangle_{\lambda}$.
+3. **Hierarchical Bayesian Site Calibration (`src/Calibration/HierarchicalTuring.jl`):** Complete the `Turing.jl` MCMC pipeline to separate global operator parameters $\mathbf{\Xi}_{\text{global}}$ from site-specific surface adapters ($z_0, z_{0h}, \text{LAI}, \Pi_G$).
