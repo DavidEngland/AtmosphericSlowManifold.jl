@@ -15,6 +15,7 @@ include("Manifold/GSPTDiagnostics.jl")
 include("Geometry/Geometry.jl")
 
 include("Closures/Interface.jl")
+include("Closures/SmoothOperators.jl")
 include("Closures/WSINDyClosure.jl")
 include("Closures/MOSTClosure.jl")
 include("Closures/PhysicalSimilarityClosure.jl")
@@ -45,6 +46,7 @@ export Geometry
 export AbstractClosure, AbstractAtmosphericClosure, WSINDyClosure, MOSTClosure, PhysicalSimilarityClosure
 export eddy_momentum, eddy_heat, surface_flux
 export evaluate_diffusivity_profile!, evaluate_heat_diffusivity_profile!
+export smooth_max, smooth_min, smooth_floor
 
 export AbstractDiscretization, MethodOfLinesFD, SpectralBLGalerkin
 export generate_stretched_grid, solve_scm
@@ -71,7 +73,7 @@ export Calibration
 export AbstractCalibrationAlgorithm, BayesianMCMC, MaximumLikelihood, VariationalInference
 export CalibrationResult, calibrate, dispatch_calibrate
 
-export build_pde_system, default_surface_flux
+export build_pde_system, default_surface_flux, default_surface_heat_flux, surface_boundary_conditions
 export export_to_csv, export_to_json, export_to_netcdf
 export Diagnostics
 

@@ -51,26 +51,36 @@ MOSTClosure(kappa::Real, pr_t::Real, cm_stable::Real, gamma_m::Real, gamma_h::Re
 end
 
 @inline function _most_phi_m(c::MOSTClosure{T}, r) where {T<:AbstractFloat}
+    # Safeguard unstable branch base to prevent invalid real powers under eager evaluation.
+    u_base = smooth_floor(one(T) - c.gamma_m * r, T(1e-2); eps = T(1e-3))
+    unstable = u_base^(-T(0.25))
     stable = one(T) + c.cm_stable * r
-    unstable = (one(T) - c.gamma_m * r)^(-T(0.25))
-    return ifelse(r >= zero(T), stable, unstable)
+
+    # Smooth C-infinity transition across r = 0.
+    w = T(0.5) * (one(T) + tanh(r / T(1e-2)))
+    return (one(T) - w) * unstable + w * stable
 end
 
 @inline function _most_phi_h(c::MOSTClosure{T}, r) where {T<:AbstractFloat}
+    # Safeguard unstable branch base to prevent invalid real powers under eager evaluation.
+    u_base = smooth_floor(one(T) - c.gamma_h * r, T(1e-2); eps = T(1e-3))
+    unstable = c.pr_t * (u_base^(-T(0.5)))
     stable = c.pr_t * (one(T) + c.cm_stable * r)
-    unstable = c.pr_t * (one(T) - c.gamma_h * r)^(-T(0.5))
-    return ifelse(r >= zero(T), stable, unstable)
+
+    # Smooth C-infinity transition across r = 0.
+    w = T(0.5) * (one(T) + tanh(r / T(1e-2)))
+    return (one(T) - w) * unstable + w * stable
 end
 
 function eddy_momentum(c::MOSTClosure{T}, m::ManifoldState) where {T<:AbstractFloat}
     z_eval = _most_local_height(m)
-    phi_m = max(_most_phi_m(c, m.r), T(0.1))
+    phi_m = smooth_floor(_most_phi_m(c, m.r), T(0.1); eps = T(1e-3))
     return (c.kappa * m.u_star * z_eval) / phi_m
 end
 
 function eddy_heat(c::MOSTClosure{T}, m::ManifoldState) where {T<:AbstractFloat}
     z_eval = _most_local_height(m)
-    phi_h = max(_most_phi_h(c, m.r), T(0.1))
+    phi_h = smooth_floor(_most_phi_h(c, m.r), T(0.1); eps = T(1e-3))
     return (c.kappa * m.u_star * z_eval) / phi_h
 end
 
@@ -107,9 +117,9 @@ function evaluate_diffusivity_profile!(
         if mask_below_z0 && z_raw <= z0
             K_out[i] = zero(T)
         else
-            z = max(z_raw, z0)
+            z = smooth_floor(z_raw, z0; eps = T(1e-3))
             r = r_profile === nothing ? zero(T) : r_profile[i]
-            phi_m = max(_most_phi_m(c, r), T(0.1))
+            phi_m = smooth_floor(_most_phi_m(c, r), T(0.1); eps = T(1e-3))
             K_out[i] = (c.kappa * u_star * z) / phi_m
         end
     end
@@ -134,9 +144,9 @@ function evaluate_heat_diffusivity_profile!(
         if mask_below_z0 && z_raw <= z0
             K_out[i] = zero(T)
         else
-            z = max(z_raw, z0)
+            z = smooth_floor(z_raw, z0; eps = T(1e-3))
             r = r_profile === nothing ? zero(T) : r_profile[i]
-            phi_h = max(_most_phi_h(c, r), T(0.1))
+            phi_h = smooth_floor(_most_phi_h(c, r), T(0.1); eps = T(1e-3))
             K_out[i] = (c.kappa * u_star * z) / phi_h
         end
     end

@@ -38,8 +38,7 @@ end
 end
 
 @inline function _phi_m(c::PhysicalSimilarityClosure{T}, zeta::Number) where {T<:AbstractFloat}
-    floor_phi = T(0.1)
-    return max(_poly_eval(c.phi_coeffs, zeta), floor_phi)
+    return smooth_floor(_poly_eval(c.phi_coeffs, zeta), T(0.1); eps = T(1e-3))
 end
 
 @inline function _km(c::PhysicalSimilarityClosure{T}, z::Number) where {T<:AbstractFloat}
@@ -193,7 +192,7 @@ Evaluate momentum eddy diffusivity at height `z`.
 """
 @inline function (closure::PhysicalSimilarityClosure{T})(z::Real) where {T<:AbstractFloat}
     zT = T(z)
-    z_eff = max(zT, zero(T))
+    z_eff = smooth_floor(zT, zero(T); eps = T(1e-3))
     return T(_km(closure, z_eff))
 end
 
@@ -226,9 +225,9 @@ function evaluate_heat_diffusivity_profile!(
 ) where {T<:AbstractFloat}
     length(K_out) == length(z_grid) || throw(DimensionMismatch("K_out and z_grid must have equal length."))
     @views @inbounds for i in eachindex(z_grid)
-        z = max(z_grid[i], zero(T))
+        z = smooth_floor(z_grid[i], zero(T); eps = T(1e-3))
         zeta = _zeta_from_height(closure, z)
-        phi_h = max(_phi_m(closure, zeta) * T(1.1), T(0.1))
+        phi_h = smooth_floor(_phi_m(closure, zeta) * T(1.1), T(0.1); eps = T(1e-3))
         K_out[i] = (closure.karman * closure.ustar * z) / phi_h
     end
     return K_out
