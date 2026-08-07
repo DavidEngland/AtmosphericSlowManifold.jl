@@ -1,3 +1,4 @@
+# src/Calibration/Backends/BayesianMCMC.jl
 function _bayes_sigma2(y::Vector{Float64}, yhat::Vector{Float64})
     r = y .- yhat
     n = max(length(y), 1)

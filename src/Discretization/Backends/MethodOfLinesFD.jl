@@ -1,3 +1,4 @@
+# src/Discretization/Backends/MethodOfLinesFD.jl
 struct MethodOfLinesFD <: AbstractDiscretization
     N::Int
     H::Float64

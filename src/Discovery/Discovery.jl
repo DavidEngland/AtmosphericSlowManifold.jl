@@ -1,3 +1,4 @@
+# src/Discovery/Discovery.jl
 include("SymbolicExtraction.jl")
 include("LibraryBuilder.jl")
 include("ConstraintBuilder.jl")

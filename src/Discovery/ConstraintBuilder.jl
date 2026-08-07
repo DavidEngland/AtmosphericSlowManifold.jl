@@ -1,3 +1,4 @@
+# src/Discovery/ConstraintBuilder.jl
 abstract type AbstractPhysicalConstraint end
 
 struct PositivityConstraint <: AbstractPhysicalConstraint

@@ -1,3 +1,4 @@
+# src/Discovery/WSINDyEngine.jl
 struct GegenbauerBasis
     n_spatial::Int
     n_temporal::Int

@@ -1,3 +1,4 @@
+# src/Discovery/WeakForms.jl
 struct WeakFormMatrix
     G::Matrix{Float64}
     b::Vector{Float64}

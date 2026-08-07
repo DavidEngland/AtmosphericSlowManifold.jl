@@ -1,3 +1,4 @@
+# src/Discovery/SymbolicExtraction.jl
 abstract type AbstractBasisFeature end
 
 struct StateVariable <: AbstractBasisFeature

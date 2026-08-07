@@ -1,3 +1,4 @@
+# src/Discretization/Backends/SpectralBLGalerkin.jl
 struct SpectralBLGalerkin <: AbstractDiscretization
     n_modes::Int
     lambda::Float64

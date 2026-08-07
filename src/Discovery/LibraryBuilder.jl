@@ -1,3 +1,4 @@
+# src/Discovery/LibraryBuilder.jl
 struct FeatureLibrary
     features::Vector{AbstractBasisFeature}
     evaluators::Vector{Function}

@@ -1,3 +1,4 @@
+# src/Calibration/Backends/VariationalInference.jl
 function dispatch_calibrate(
     model::DiscoveredModel{Float64},
     obs::ObservationTable,

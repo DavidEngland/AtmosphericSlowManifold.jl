@@ -1,3 +1,4 @@
+# src/Discovery/TestFunctions.jl
 abstract type AbstractTestFunctionFamily end
 
 struct GegenbauerFamily <: AbstractTestFunctionFamily

@@ -1,3 +1,4 @@
+# src/Calibration/Calibration.jl
 module Calibration
 
 using ..AtmosphericSlowManifold: DiscoveredModel, ObservationTable
@@ -9,5 +10,6 @@ include("Interface.jl")
 include("Backends/MaximumLikelihood.jl")
 include("Backends/BayesianMCMC.jl")
 include("Backends/VariationalInference.jl")
+include("HierarchicalTuring.jl")
 
 end # module Calibration

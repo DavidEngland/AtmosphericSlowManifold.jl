@@ -38,6 +38,7 @@ include("System/ExportUtilities.jl")
 
 using .Calibration: AbstractCalibrationAlgorithm, BayesianMCMC, MaximumLikelihood, VariationalInference
 using .Calibration: CalibrationResult, calibrate, dispatch_calibrate
+using .Calibration: CalibrationConfig, HierarchicalCalibrationResult, calibrate_hierarchical
 using .ExportUtilities: export_to_csv, export_to_json, export_to_netcdf
 
 export ManifoldState, FoldConstraint, fold_residual, fold_transversality
@@ -72,6 +73,7 @@ export AbstractSparseOptimizer, STRidge, ConstrainedQP, solve_sparse_regression
 export Calibration
 export AbstractCalibrationAlgorithm, BayesianMCMC, MaximumLikelihood, VariationalInference
 export CalibrationResult, calibrate, dispatch_calibrate
+export CalibrationConfig, HierarchicalCalibrationResult, calibrate_hierarchical
 
 export build_pde_system, default_surface_flux, default_surface_heat_flux, surface_boundary_conditions
 export export_to_csv, export_to_json, export_to_netcdf

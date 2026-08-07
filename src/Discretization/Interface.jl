@@ -1,3 +1,4 @@
+# src/Discretization/Interface.jl
 abstract type AbstractDiscretization end
 
 function dispatch_solve(::AbstractDiscretization, pde_sys::PDESystem, closure::AbstractClosure, tspan::Tuple{Float64, Float64}; kwargs...)

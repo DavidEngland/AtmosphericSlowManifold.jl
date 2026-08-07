@@ -98,4 +98,18 @@
     @test isapprox(fit.parameters[:mle][1], c1_true; atol = 1e-5)
     @test isapprox(fit.parameters[:mle][2], c2_true; atol = 1e-5)
     @test fit.diagnostics[:r2] > 0.999999
+
+    cfg = CalibrationConfig()
+    @test cfg.global_scale == 1.0
+    @test cfg.site_scale == 0.2
+    @test cfg.samples == 1000
+    @test cfg.chains == 4
+    @test cfg.target_accept == 0.8
+
+    empty_sites = Dict{Symbol, ObservationTable}()
+    if Base.find_package("Turing") === nothing
+        @test_throws ErrorException calibrate_hierarchical(fit_model, empty_sites, cfg)
+    else
+        @test_throws ArgumentError calibrate_hierarchical(fit_model, empty_sites, cfg)
+    end
 end

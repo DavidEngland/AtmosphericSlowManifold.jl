@@ -1,3 +1,4 @@
+# src/Discovery/SparseRegression.jl
 using HiGHS
 
 abstract type AbstractSparseOptimizer end
