@@ -11,5 +11,6 @@ include("Backends/MaximumLikelihood.jl")
 include("Backends/BayesianMCMC.jl")
 include("Backends/VariationalInference.jl")
 include("HierarchicalTuring.jl")
+include("UncertaintyPropagation.jl")
 
 end # module Calibration

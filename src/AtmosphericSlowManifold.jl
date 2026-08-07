@@ -39,6 +39,7 @@ include("System/ExportUtilities.jl")
 using .Calibration: AbstractCalibrationAlgorithm, BayesianMCMC, MaximumLikelihood, VariationalInference
 using .Calibration: CalibrationResult, calibrate, dispatch_calibrate
 using .Calibration: CalibrationConfig, HierarchicalCalibrationResult, calibrate_hierarchical
+using .Calibration: evaluate_profile_uncertainty
 using .ExportUtilities: export_to_csv, export_to_json, export_to_netcdf
 
 export ManifoldState, FoldConstraint, fold_residual, fold_transversality
@@ -62,6 +63,8 @@ export discover_closure
 export discover
 export AbstractBasisFeature, StateVariable, SpatialDerivative, DiagnosticVariable
 export BasisOperator, OperatorTerm, DiscoveredModel, to_mtk_expression, get_feature_symbolic
+export to_latex, latex_term_table, latex_site_summary_table
+export aic, bic, model_aic, model_bic, compute_pareto_front, kfold_cv_residual
 export FeatureLibrary, build_feature_library
 export AbstractPhysicalConstraint, PositivityConstraint, MonotonicityConstraint, EnergyConstraint
 export PhysicalConstraintMatrix, assemble_constraint_matrix
@@ -74,6 +77,7 @@ export Calibration
 export AbstractCalibrationAlgorithm, BayesianMCMC, MaximumLikelihood, VariationalInference
 export CalibrationResult, calibrate, dispatch_calibrate
 export CalibrationConfig, HierarchicalCalibrationResult, calibrate_hierarchical
+export evaluate_profile_uncertainty
 
 export build_pde_system, default_surface_flux, default_surface_heat_flux, surface_boundary_conditions
 export export_to_csv, export_to_json, export_to_netcdf
