@@ -1,3 +1,4 @@
+# src/Manifold/GSPTDiagnostics.jl
 struct FoldConstraint
     expr::Num
 end

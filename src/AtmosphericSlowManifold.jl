@@ -1,3 +1,4 @@
+# src/AtmosphericSlowManifold.jl
 module AtmosphericSlowManifold
 
 using ModelingToolkit
