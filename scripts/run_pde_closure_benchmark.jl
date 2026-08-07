@@ -11,6 +11,12 @@ const CSV_DIR = joinpath(OUTPUT_ROOT, "csv")
 const FIG_DIR = joinpath(OUTPUT_ROOT, "figures")
 const TABLE_DIR = joinpath(OUTPUT_ROOT, "tables")
 
+const N_MODES_BENCHMARK = 12
+const RELTOL_BENCHMARK = 1e-4
+const ABSTOL_BENCHMARK = 1e-6
+const SAVEAT_BENCHMARK = 300.0
+const DT_INITIAL_BENCHMARK = 1.0
+
 mkpath(FIG_DIR)
 mkpath(TABLE_DIR)
 
@@ -67,13 +73,53 @@ function rmse(a::Vector{Float64}, b::Vector{Float64})
 end
 
 function solve_with_fallback(pde_sys, closure, disc, tspan, u0)
-    sol = solve_scm(pde_sys, closure, disc, tspan; solver = Tsit5(), reltol = 1e-6, abstol = 1e-8, u0 = u0)
-    if string(sol.retcode) == "Success"
-        return sol, "Tsit5"
+    solver_chain = (
+        (name = "Rodas5P", alg = Rodas5P()),
+        (name = "RadauIIA5", alg = RadauIIA5()),
+        (name = "FBDF", alg = FBDF()),
+    )
+
+    for candidate in solver_chain
+        try
+            sol = solve_scm(
+                pde_sys,
+                closure,
+                disc,
+                tspan;
+                solver = candidate.alg,
+                reltol = RELTOL_BENCHMARK,
+                abstol = ABSTOL_BENCHMARK,
+                dt = DT_INITIAL_BENCHMARK,
+                dtmax = 120.0,
+                maxiters = 10^7,
+                saveat = SAVEAT_BENCHMARK,
+                u0 = u0,
+            )
+
+            if string(sol.retcode) == "Success"
+                return sol, candidate.name
+            end
+        catch
+            # Continue through fallback chain when a solver is incompatible.
+        end
     end
 
-    stiff = solve_scm(pde_sys, closure, disc, tspan; solver = RadauIIA5(), reltol = 1e-6, abstol = 1e-8, u0 = u0)
-    return stiff, "RadauIIA5"
+    # Return the final attempt result if all candidates fail.
+    final = solve_scm(
+        pde_sys,
+        closure,
+        disc,
+        tspan;
+        solver = Rodas5P(),
+        reltol = RELTOL_BENCHMARK,
+        abstol = ABSTOL_BENCHMARK,
+        dt = DT_INITIAL_BENCHMARK,
+        dtmax = 120.0,
+        maxiters = 10^7,
+        saveat = SAVEAT_BENCHMARK,
+        u0 = u0,
+    )
+    return final, "Rodas5P(final)"
 end
 
 function run_case(campaign::String, payload)
@@ -90,7 +136,7 @@ function run_case(campaign::String, payload)
         z_ref = closure.z_ref,
     )
 
-    disc = SpectralBLGalerkin(n_modes = 18, lambda = 0.75, H = 100.0, enable_nonlinear = true)
+    disc = SpectralBLGalerkin(n_modes = N_MODES_BENCHMARK, lambda = 0.75, H = 100.0, enable_nonlinear = true)
     tspan = (0.0, 12.0 * 3600.0)
 
     mean_wind = campaign_mean_wind(payload.raw)
@@ -147,9 +193,9 @@ summary_path = joinpath(TABLE_DIR, "pde_benchmark_summary.csv")
 CSV.write(summary_path, summary_df)
 
 p = plot(layout = (1, 2), size = (1200, 500))
-mode_idx = collect(1:18)
 for (j, campaign) in enumerate(sort(collect(keys(profiles))))
     prof = profiles[campaign]
+    mode_idx = collect(1:length(prof.observed))
     plot!(
         p[j],
         mode_idx,

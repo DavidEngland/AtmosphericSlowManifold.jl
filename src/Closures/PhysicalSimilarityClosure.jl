@@ -31,7 +31,10 @@ end
 
 @inline function _zeta_from_height(c::PhysicalSimilarityClosure{T}, z::Number) where {T<:AbstractFloat}
     raw = z / c.L_obukhov
-    return isempty(c.zeta_coeffs) ? raw : _poly_eval(c.zeta_coeffs, raw)
+    transformed = isempty(c.zeta_coeffs) ? raw : _poly_eval(c.zeta_coeffs, raw)
+    # Smoothly bound zeta to keep phi(zeta) evaluations well-conditioned in extreme regimes.
+    zeta_limit = T(5.0)
+    return zeta_limit * tanh(transformed / zeta_limit)
 end
 
 @inline function _phi_m(c::PhysicalSimilarityClosure{T}, zeta::Number) where {T<:AbstractFloat}
@@ -115,6 +118,33 @@ function _term_coefficient(payload, term_name::String, default::Float64)
     return default
 end
 
+function _resolve_diagnostics_json_path(json_path::String)
+    if isfile(json_path)
+        return json_path
+    end
+
+    base = basename(json_path)
+    diagnostics_dir = joinpath(pwd(), "reports", "generated", "campaign_exports", "json")
+
+    candidates = String[]
+    push!(candidates, joinpath(diagnostics_dir, base))
+
+    if occursin("_diagnostics.json", base)
+        alt = replace(base, "_diagnostics.json" => "_model_and_diagnostics.json")
+        push!(candidates, joinpath(dirname(json_path), alt))
+        push!(candidates, joinpath(diagnostics_dir, alt))
+    elseif occursin("_model_and_diagnostics.json", base)
+        alt = replace(base, "_model_and_diagnostics.json" => "_diagnostics.json")
+        push!(candidates, joinpath(dirname(json_path), alt))
+        push!(candidates, joinpath(diagnostics_dir, alt))
+    end
+
+    for c in candidates
+        isfile(c) && return c
+    end
+    throw(ArgumentError("Could not find diagnostics JSON at $(json_path) or compatible fallback paths."))
+end
+
 """
     PhysicalSimilarityClosure(json_path::String)
 
@@ -123,7 +153,8 @@ The parser supports current generated artifacts under
 `reports/generated/campaign_exports/json/*_model_and_diagnostics.json`.
 """
 function PhysicalSimilarityClosure(json_path::String)
-    payload = JSON3.read(read(json_path, String))
+    resolved_path = _resolve_diagnostics_json_path(json_path)
+    payload = JSON3.read(read(resolved_path, String))
 
     ustar = _json_number(_json_get(payload, ("diagnostics", "stats", "ustar", "mean"), nothing), 0.3)
     L_mean = _json_number(_json_get(payload, ("diagnostics", "obukhov_scaling", "mean"), nothing), -100.0)
@@ -137,7 +168,13 @@ function PhysicalSimilarityClosure(json_path::String)
 
     phi0 = max(phi_mean, 0.1)
     phi1 = isfinite(phi_term) ? phi_term : 0.0
-    zref = _json_number(_json_get(payload, ("diagnostics", "stats", "z", "mean"), nothing), 10.0)
+    zref_from_stats = _json_number(_json_get(payload, ("diagnostics", "stats", "z", "mean"), nothing), NaN)
+    zref = if isfinite(zref_from_stats)
+        zref_from_stats
+    else
+        zeta_abs = max(abs(zeta_mean), 1e-6)
+        abs(L_mean) * zeta_abs
+    end
 
     return PhysicalSimilarityClosure(
         phi_coeffs = [phi0, phi1],
@@ -198,11 +235,13 @@ function evaluate_heat_diffusivity_profile!(
 end
 
 function eddy_momentum(c::PhysicalSimilarityClosure, m::ManifoldState)
-    return _km(c, m.z0)
+    z_eval = hasproperty(m, :z) ? m.z : m.z0
+    return _km(c, z_eval)
 end
 
 function eddy_heat(c::PhysicalSimilarityClosure, m::ManifoldState)
-    return _km(c, m.z0) / 1.1
+    z_eval = hasproperty(m, :z) ? m.z : m.z0
+    return _km(c, z_eval) / 1.1
 end
 
 surface_flux(c::PhysicalSimilarityClosure, ::ManifoldState) = c.ustar^2

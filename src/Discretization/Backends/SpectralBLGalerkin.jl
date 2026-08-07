@@ -454,47 +454,16 @@ function dispatch_solve(
     u0 = nothing,
     kwargs...
 )
-    ModelingToolkit.@variables t
-    ModelingToolkit.@variables a(t)[1:disc.n_modes]
-
-    # Galerkin inner-product projection of a linear diffusive prototype operator.
-    # M * da/dt = -K * a  =>  da/dt = L * a, where L = -(M \ K)
-    L = _linear_modal_operator(disc)
-
     workspace = build_boundary_layer_workspace(disc, closure)
     update_diffusivity_buffers!(workspace)
 
+    M = _mass_matrix(disc.n_modes, disc.lambda)
+    K = _stiffness_matrix(disc.n_modes, disc.lambda, disc.H)
     tensors = disc.enable_nonlinear ? precompute_nonlinear_tensors(disc) : nothing
     adv_scale = _mean_abs(workspace.K_m_buffer)
     diff_scale = _mean_abs(workspace.K_h_buffer)
     adv_scale *= disc.nonlinear_scale * disc.advection_response_scale
     diff_scale *= disc.nonlinear_scale * disc.diffusivity_response_scale
-
-    eqs = Vector{Equation}(undef, disc.n_modes)
-    for n in 1:disc.n_modes
-        rhs = zero(a[1])
-        for k in 1:disc.n_modes
-            rhs += L[n, k] * a[k]
-        end
-
-        if disc.enable_nonlinear && !(tensors === nothing)
-            for i in 1:disc.n_modes
-                for j in 1:disc.n_modes
-                    rhs -= adv_scale * tensors.advection[n, i, j] * a[i] * a[j]
-                end
-            end
-            for i in 1:disc.n_modes
-                for j in 1:disc.n_modes
-                    rhs -= diff_scale * tensors.diffusion_flux[n, i, j] * a[i] * a[j]
-                end
-            end
-        end
-
-        eqs[n] = ModelingToolkit.Differential(t)(a[n]) ~ rhs
-    end
-
-    ModelingToolkit.@named modal_ode = ModelingToolkit.ODESystem(eqs, t)
-    sys = structural_simplify(modal_ode)
 
     init = if u0 === nothing
         ones(disc.n_modes)
@@ -503,6 +472,88 @@ function dispatch_solve(
         Float64.(collect(u0))
     end
 
-    prob = ODEProblem(sys, init, tspan)
+    p = (
+        M = M,
+        K = K,
+        tensors = tensors,
+        adv_scale = adv_scale,
+        diff_scale = diff_scale,
+        n = disc.n_modes,
+        nl = zeros(Float64, disc.n_modes),
+        dnl = zeros(Float64, disc.n_modes, disc.n_modes),
+        M_dnl = zeros(Float64, disc.n_modes, disc.n_modes),
+    )
+
+    function rhs_mass!(du, u, p, t)
+        fill!(du, 0.0)
+        mul!(du, p.K, u)
+        @inbounds for i in 1:p.n
+            du[i] = -du[i]
+        end
+
+        if p.tensors === nothing
+            return du
+        end
+
+        fill!(p.nl, 0.0)
+        @inbounds for k in 1:p.n
+            adv = 0.0
+            diff = 0.0
+            for i in 1:p.n
+                ui = u[i]
+                for j in 1:p.n
+                    uij = ui * u[j]
+                    adv += p.tensors.advection[k, i, j] * uij
+                    diff += p.tensors.diffusion_flux[k, i, j] * uij
+                end
+            end
+            p.nl[k] = -(p.adv_scale * adv + p.diff_scale * diff)
+        end
+
+        mul!(p.nl, p.M, p.nl)
+        @inbounds for i in 1:p.n
+            du[i] += p.nl[i]
+        end
+        return du
+    end
+
+    function jac_mass!(J, u, p, t)
+        fill!(J, 0.0)
+        @inbounds for i in 1:p.n
+            for j in 1:p.n
+                J[i, j] = -p.K[i, j]
+            end
+        end
+
+        if p.tensors === nothing
+            return J
+        end
+
+        fill!(p.dnl, 0.0)
+        @inbounds for k in 1:p.n
+            for l in 1:p.n
+                d_adv = 0.0
+                d_diff = 0.0
+                for j in 1:p.n
+                    d_adv += p.tensors.advection[k, l, j] * u[j]
+                    d_adv += p.tensors.advection[k, j, l] * u[j]
+                    d_diff += p.tensors.diffusion_flux[k, l, j] * u[j]
+                    d_diff += p.tensors.diffusion_flux[k, j, l] * u[j]
+                end
+                p.dnl[k, l] = -(p.adv_scale * d_adv + p.diff_scale * d_diff)
+            end
+        end
+
+        mul!(p.M_dnl, p.M, p.dnl)
+        @inbounds for i in 1:p.n
+            for j in 1:p.n
+                J[i, j] += p.M_dnl[i, j]
+            end
+        end
+        return J
+    end
+
+    odef = ODEFunction(rhs_mass!; jac = jac_mass!, mass_matrix = M)
+    prob = ODEProblem(odef, init, tspan, p)
     return solve(prob, solver; kwargs...)
 end

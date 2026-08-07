@@ -41,6 +41,38 @@ using LinearAlgebra
     end
 end
 
+@testset "PhysicalClosure diagnostics filename fallback" begin
+    mktempdir() do d
+        json_model = joinpath(d, "sheba_model_and_diagnostics.json")
+        open(json_model, "w") do io
+            write(io, """
+            {
+              "diagnostics": {
+                "obukhov_scaling": {"mean": -50.0, "n": 12, "present": true},
+                "similarity_parameters": {
+                  "zeta": {"mean": 0.2, "n": 12},
+                  "phi_obs": {"mean": 1.1, "n": 12}
+                },
+                "stats": {
+                  "ustar": {"mean": 0.3, "n": 12}
+                }
+              },
+              "terms": [
+                {"name": "zeta", "coefficient": 1.0},
+                {"name": "phi_obs", "coefficient": 0.25}
+              ]
+            }
+            """)
+        end
+
+        # Request *_diagnostics.json even though only *_model_and_diagnostics.json exists.
+        c = PhysicalSimilarityClosure(joinpath(d, "sheba_diagnostics.json"))
+        @test c isa PhysicalSimilarityClosure
+        @test isfinite(c.L_obukhov)
+        @test isfinite(c.ustar)
+    end
+end
+
 @testset "PDE RHS Allocation & Stability" begin
     closure = PhysicalSimilarityClosure(
         phi_coeffs = [1.0, 0.15],
