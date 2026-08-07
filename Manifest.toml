@@ -2,7 +2,7 @@
 
 julia_version = "1.12.6"
 manifest_format = "2.0"
-project_hash = "1416e4bbae17583ed1e6f1575fed6c62872e421d"
+project_hash = "6ac14ae5843d29f4ad34b8156e3947fd273aede8"
 
 [[deps.ADTypes]]
 git-tree-sha1 = "9b38b82a9fe131f3d331a53b7203d9d1a2a4602c"
@@ -136,7 +136,7 @@ uuid = "56f22d72-fd6d-98f1-02f0-08ddc0907c33"
 version = "1.11.0"
 
 [[deps.AtmosphericSlowManifold]]
-deps = ["CSV", "DataDrivenDiffEq", "DataFrames", "DelimitedFiles", "DifferentialEquations", "DomainSets", "HiGHS", "JSON3", "JuMP", "LinearAlgebra", "MethodOfLines", "ModelingToolkit", "NCDatasets", "Plots", "Symbolics"]
+deps = ["CSV", "DataDrivenDiffEq", "DataFrames", "DelimitedFiles", "DifferentialEquations", "DomainSets", "HiGHS", "JSON3", "JuMP", "LinearAlgebra", "MethodOfLines", "ModelingToolkit", "NCDatasets", "Plots", "Statistics", "Symbolics"]
 path = "."
 uuid = "f5d9f31a-9f64-44a9-a921-7ddf4f0dc001"
 version = "0.1.0"

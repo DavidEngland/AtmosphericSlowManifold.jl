@@ -32,6 +32,7 @@ function build_pde_system(
         state.theta => theta(t, z),
         state.q => 0.0,
         state.u_star => u_star_value,
+        state.z => z,
         state.z0 => z0_value,
     )
 

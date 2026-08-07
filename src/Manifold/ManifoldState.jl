@@ -12,10 +12,11 @@ struct ManifoldState
     theta::Num
     q::Num
     u_star::Num
+    z::Num
     z0::Num
 end
 
 function ManifoldState(; name::Symbol = :manifold)
-    ModelingToolkit.@variables eta1 eta2 eta3 r omega chi pi_g lambdamin u v theta q u_star z0
-    return ManifoldState(eta1, eta2, eta3, r, omega, chi, pi_g, lambdamin, u, v, theta, q, u_star, z0)
+    ModelingToolkit.@variables eta1 eta2 eta3 r omega chi pi_g lambdamin u v theta q u_star z z0
+    return ManifoldState(eta1, eta2, eta3, r, omega, chi, pi_g, lambdamin, u, v, theta, q, u_star, z, z0)
 end

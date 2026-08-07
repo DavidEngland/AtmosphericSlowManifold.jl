@@ -23,6 +23,7 @@ include("Observation/SpectralBLTransform.jl")
 
 include("System/SurfaceBoundary.jl")
 include("System/PrognosticPDE.jl")
+include("Diagnostics/Diagnostics.jl")
 
 include("Discretization/Interface.jl")
 include("Discretization/StretchedGrid.jl")
@@ -40,7 +41,7 @@ using .ExportUtilities: export_to_csv, export_to_json, export_to_netcdf
 export ManifoldState, FoldConstraint, fold_residual, fold_transversality
 export Geometry
 
-export AbstractClosure, WSINDyClosure, MOSTClosure, PhysicalSimilarityClosure
+export AbstractClosure, AbstractAtmosphericClosure, WSINDyClosure, MOSTClosure, PhysicalSimilarityClosure
 export eddy_momentum, eddy_heat, surface_flux
 export evaluate_diffusivity_profile!, evaluate_heat_diffusivity_profile!
 
@@ -71,6 +72,7 @@ export CalibrationResult, calibrate, dispatch_calibrate
 
 export build_pde_system, default_surface_flux
 export export_to_csv, export_to_json, export_to_netcdf
+export Diagnostics
 
 export verify_closure
 

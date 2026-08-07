@@ -1,5 +1,8 @@
 abstract type AbstractClosure end
 
+# Compatibility alias used by external notes/specs.
+const AbstractAtmosphericClosure = AbstractClosure
+
 function eddy_momentum(::AbstractClosure, ::ManifoldState)
     throw(MethodError(eddy_momentum, (AbstractClosure, ManifoldState)))
 end

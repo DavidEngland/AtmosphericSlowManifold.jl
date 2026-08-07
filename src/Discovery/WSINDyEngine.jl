@@ -244,7 +244,7 @@ function _candidate_to_state(expr::Num, state::ManifoldState)
     for v in vars
         s = lowercase(String(Symbolics.tosymbol(v)))
         if s == "z"
-            subs[v] = state.z0
+            subs[v] = state.z
         elseif s == "r"
             subs[v] = state.r
         elseif s == "chi"
