@@ -64,3 +64,53 @@ end
     hyp = D.normal_hyperbolicity(J, 1)
     @test hyp >= 1.0
 end
+
+@testset "Campaign Diagnostics Aggregation" begin
+    u_obs = [2.0, 3.0, 4.0, 5.0]
+    u_pred = [2.1, 2.9, 4.2, 4.8]
+    theta_obs = [290.0, 291.0, 292.0, 293.0]
+    theta_pred = [289.8, 291.2, 292.1, 293.3]
+
+    Rn = [120.0, 118.0, 121.0, 119.0]
+    H = [45.0, 44.0, 46.0, 45.0]
+    G = [12.0, 12.0, 11.0, 12.0]
+    LE = [58.0, 57.0, 59.0, 58.0]
+
+    v_fast = [1.0, 0.2, -0.1]
+    n_slow = [0.8, 0.1, 0.0]
+    state = [1.0, 2.0, 0.5]
+    fold_locus = [
+        1.0 1.5 2.0;
+        2.0 2.5 3.0;
+        0.5 0.6 0.9
+    ]
+
+    val_rmse_u = D.rmse(u_pred, u_obs)
+    val_rmse_th = D.rmse(theta_pred, theta_obs)
+    e_summary = D.surface_energy_budget(Rn, H, G, LE)
+    tau_val = D.transversality(v_fast, n_slow)
+    dist_fold = D.fold_distance(state, fold_locus)
+
+    summary = D.CampaignDiagnostics(
+        "CASES-99_Night3",
+        length(u_obs),
+        val_rmse_u,
+        val_rmse_th,
+        0.942,
+        0.015,
+        e_summary.rms_imbalance,
+        4.12,
+        tau_val,
+        0.03,
+        0.18,
+        dist_fold,
+    )
+
+    @test summary.campaign_name == "CASES-99_Night3"
+    @test summary.num_samples == 4
+    @test summary.rmse_u == val_rmse_u
+    @test summary.rmse_theta == val_rmse_th
+    @test summary.energy_imbalance_rms == e_summary.rms_imbalance
+    @test summary.transversality_mean == tau_val
+    @test summary.fold_distance_min == dist_fold
+end

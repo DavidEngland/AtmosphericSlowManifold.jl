@@ -63,6 +63,40 @@ using NCDatasets
         @test String(parsed["target_variable"]) == "K_m"
         @test Int(parsed["num_terms"]) == 2
 
+        # Closure -> JSON
+        closure = MOSTClosure()
+        closure_diag = Dict{Symbol, Any}(:regime => :stable, :samples => 32)
+        closure_json_path = joinpath(d, "closure.json")
+        out_closure_json = export_to_json(closure_json_path, closure, closure_diag)
+        @test out_closure_json == closure_json_path
+        @test isfile(closure_json_path)
+
+        parsed_closure = JSON3.read(read(closure_json_path, String))
+        @test String(parsed_closure["closure_type"]) == "MOSTClosure"
+        @test haskey(parsed_closure, "parameters")
+        @test haskey(parsed_closure, "diagnostics")
+
+        # Model + closure -> unified JSON
+        combined_json_path = joinpath(d, "combined.json")
+        out_combined_json = export_to_json(combined_json_path, model, closure, Dict(:score => 0.92))
+        @test out_combined_json == combined_json_path
+        @test isfile(combined_json_path)
+
+        parsed_combined = JSON3.read(read(combined_json_path, String))
+        @test haskey(parsed_combined, "model")
+        @test haskey(parsed_combined, "closure")
+        @test haskey(parsed_combined, "diagnostics")
+
+        # Generic Dict/NamedTuple -> JSON
+        meta_json_path = joinpath(d, "meta.json")
+        out_meta_json = export_to_json(meta_json_path, Dict(:hardware => "cpu", :grid => (nz = 64, ztop = 3000.0)))
+        @test out_meta_json == meta_json_path
+        @test isfile(meta_json_path)
+
+        parsed_meta = JSON3.read(read(meta_json_path, String))
+        @test String(parsed_meta["hardware"]) == "cpu"
+        @test haskey(parsed_meta, "grid")
+
         # NetCDF trajectory export
         z_grid = [0.0, 10.0, 20.0]
         t_grid = [0.0, 5.0]
