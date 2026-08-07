@@ -17,8 +17,8 @@ using Symbolics
 
     ttable = latex_term_table(model; r2 = 0.97)
     @test occursin("Term & Basis & Coefficient", ttable)
-    @test occursin("R^{2}=0.97", ttable)
-    @test occursin("Residual norm=0.0123", ttable)
+    @test occursin("R^{2} = 0.97", ttable)
+    @test occursin("Residual norm = 0.0123", ttable)
 
     models = Dict(
         :CASES99 => model,
@@ -28,6 +28,16 @@ using Symbolics
     @test occursin("Site & Active terms", stable)
     @test occursin("0.94", stable)
     @test occursin("0.91", stable)
+
+    multieqn = to_latex([model, DiscoveredModel{Float64}(:theta, terms[1:1], 0.05, 1)])
+    @test occursin("\\begin{align}", multieqn)
+    @test occursin("\\partial \\theta", multieqn)
+
+    temp_path = joinpath(mktempdir(), "latex-export.tex")
+    written_path = write_latex(temp_path, eqn)
+    @test written_path == temp_path
+    @test isfile(temp_path)
+    @test occursin("\\frac{\\partial u}{\\partial t}", read(temp_path, String))
 
     @variables z
     closure = WSINDyClosure(Num(0.1) + Num(z), Num(0.2), Num(0.05))

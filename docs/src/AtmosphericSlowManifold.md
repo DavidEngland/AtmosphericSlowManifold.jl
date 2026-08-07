@@ -1,3 +1,6 @@
+<!-- Auto-generated from package source -->
+> **Source:** `src/AtmosphericSlowManifold.md`
+
 The `AtmosphericSlowManifold.jl` root module serves as the orchestration hub for the framework, explicitly mapping the modular subcomponents into a unified API surface while relying on core Julia ecosystem tools (`ModelingToolkit`, `JuMP`, `MethodOfLines`, `DifferentialEquations`).
 
 ```

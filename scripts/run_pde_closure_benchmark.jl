@@ -1,3 +1,4 @@
+# scripts/run_pde_closure_benchmark.jl
 using AtmosphericSlowManifold
 using CSV
 using DataFrames

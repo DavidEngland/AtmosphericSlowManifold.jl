@@ -1,3 +1,4 @@
+# scripts/validate_campaign_exports.jl
 using CSV
 using DataFrames
 using JSON3
@@ -56,6 +57,7 @@ function main()
         ok &= require_file(joinpath(CSV_DIR, "$(c)_stats.csv"))
         ok &= require_file(joinpath(JSON_DIR, "$(c)_model_and_diagnostics.json"))
         ok &= require_file(joinpath(FIG_DIR, "$(c)_metrics.png"))
+        ok &= require_file(joinpath(FIG_DIR, "$(c)_km_uncertainty.png"))
     end
 
     # Validate JSON model/diagnostic schema for physical similarity parameters.
@@ -89,6 +91,21 @@ function main()
         ok &= check(has_obukhov, "JSON diagnostics include obukhov_scaling.n for $(c)")
         if has_obukhov
             ok &= check(Int(diag["obukhov_scaling"]["n"]) > 0, "obukhov scaling finite record count N>0 for $(c)")
+        end
+
+        has_prof_unc = haskey(diag, "profile_uncertainty")
+        ok &= check(has_prof_unc, "JSON diagnostics include profile_uncertainty for $(c)")
+        if has_prof_unc
+            pu = diag["profile_uncertainty"]
+            has_keys = haskey(pu, "z_grid") && haskey(pu, "km_q025") && haskey(pu, "km_q050") && haskey(pu, "km_q975")
+            ok &= check(has_keys, "profile_uncertainty contains z_grid, km_q025, km_q050, and km_q975 for $(c)")
+            if has_keys
+                n_z = length(pu["z_grid"])
+                ok &= check(n_z > 0, "profile_uncertainty z_grid is non-empty for $(c)")
+                ok &= check(length(pu["km_q025"]) == n_z, "km_q025 matches z_grid length for $(c)")
+                ok &= check(length(pu["km_q050"]) == n_z, "km_q050 matches z_grid length for $(c)")
+                ok &= check(length(pu["km_q975"]) == n_z, "km_q975 matches z_grid length for $(c)")
+            end
         end
 
         if haskey(payload, "terms")
@@ -133,6 +150,7 @@ function main()
         ok &= check(occursin("## Campaign Analysis Summary", txt), "summary markdown contains analysis section")
         ok &= check(occursin("## Output Artifact Manifest", txt), "summary markdown contains artifact manifest section")
         ok &= check(occursin("Overview figure:", txt), "summary markdown references overview figure")
+        ok &= check(occursin("K_m Credibility Ribbon", txt) || occursin("km_uncertainty", txt), "summary markdown manifest references K_m uncertainty ribbon")
     end
 
     if ok

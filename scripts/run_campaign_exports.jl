@@ -1,9 +1,11 @@
+# scripts/run_campaign_exports.jl
 using AtmosphericSlowManifold
 using CSV
 using DataFrames
 using Dates
 using Plots
 using Statistics
+using Random
 
 const CAMPAIGN_SOURCES = Dict(
     "CASES-99" => "../SpectralBL-Analytics/data/drafts/trajectories/trajectory_cases_99.csv",
@@ -299,6 +301,60 @@ function mean_wind_speed(df::DataFrame)
     return NaN
 end
 
+function compute_km_profile_uncertainty(df::DataFrame, z_grid::Vector{Float64}; n_draws::Int = 1000)
+    Random.seed!(42)
+
+    ustar_mean = hasproperty(df, :ustar) ? finite_mean(get_numeric_column(df, :ustar)) : 0.25
+    ustar_mean = isfinite(ustar_mean) && ustar_mean > 0 ? ustar_mean : 0.25
+
+    l_mean = hasproperty(df, :L_obukhov) ? finite_mean(get_numeric_column(df, :L_obukhov)) : 50.0
+    l_mean = isfinite(l_mean) && abs(l_mean) > 1.0 ? l_mean : 50.0
+
+    n_z = length(z_grid)
+    km_draws = zeros(Float64, n_z, n_draws)
+
+    kappa_draws = randn(n_draws) .* 0.02 .+ 0.40
+    beta_draws = randn(n_draws) .* 0.50 .+ 4.70
+    ustar_draws = max.(0.01, randn(n_draws) .* 0.05 .+ ustar_mean)
+
+    for d in 1:n_draws
+        κ = kappa_draws[d]
+        β = beta_draws[d]
+        u_s = ustar_draws[d]
+        for (i, z) in enumerate(z_grid)
+            ζ = z / l_mean
+            ϕ_m = ζ >= 0 ? (1.0 + β * ζ) : (1.0 - 16.0 * ζ)^(-0.25)
+            km_draws[i, d] = (κ * u_s * z) / max(0.1, ϕ_m)
+        end
+    end
+
+    q25 = [quantile(@view(km_draws[i, :]), 0.025) for i in 1:n_z]
+    q50 = [quantile(@view(km_draws[i, :]), 0.500) for i in 1:n_z]
+    q975 = [quantile(@view(km_draws[i, :]), 0.975) for i in 1:n_z]
+
+    return km_draws, q25, q50, q975
+end
+
+function plot_km_uncertainty_ribbon(campaign::String, slug::String, z_grid::Vector{Float64}, q25::Vector{Float64}, q50::Vector{Float64}, q975::Vector{Float64})
+    p = plot(
+        q50,
+        z_grid,
+        ribbon = (q50 .- q25, q975 .- q50),
+        fillalpha = 0.35,
+        linecolor = :navy,
+        fillcolor = :skyblue,
+        linewidth = 2,
+        xlabel = "Eddy Diffusivity K_m (m^2 s^-1)",
+        ylabel = "Height z (m)",
+        title = "$(campaign): Vertical Eddy Diffusivity K_m(z) (95% Credibility Ribbon)",
+        legend = false,
+        size = (800, 700),
+    )
+    out = joinpath(FIG_DIR, "$(slug)_km_uncertainty.png")
+    savefig(p, out)
+    return out
+end
+
 function build_model_from_row(df::DataFrame)
     available = Set(Symbol.(names(df)))
     coeff_cols = [c for c in Symbol[:zeta, :phi_obs, :L_obukhov, :sensible_heat_flux, :ustar, :theta_star] if c in available]
@@ -397,6 +453,7 @@ summary = DataFrame(
     netcdf = String[],
     metrics_fig = String[],
     heatmap_fig = String[],
+    km_uncertainty_fig = String[],
 )
 
 overview = DataFrame(
@@ -412,7 +469,7 @@ for (campaign, rel_path) in CAMPAIGN_SOURCES
     abs_path = normpath(joinpath(pwd(), rel_path))
 
     if !isfile(abs_path)
-        push!(summary, (campaign, abs_path, "missing", 0, 0, "", "", "", "", ""))
+        push!(summary, (campaign, abs_path, "missing", 0, 0, "", "", "", "", "", ""))
         continue
     end
 
@@ -425,6 +482,10 @@ for (campaign, rel_path) in CAMPAIGN_SOURCES
 
     raw_csv = joinpath(CSV_DIR, "$(slug)_raw.csv")
     export_to_csv(raw_csv, df)
+
+    z_eval_grid = collect(0.5:0.5:50.0)
+    _, q25, q50, q975 = compute_km_profile_uncertainty(df, z_eval_grid)
+    km_fig = plot_km_uncertainty_ribbon(campaign, slug, z_eval_grid, q25, q50, q975)
 
     stats_df, diag_stats = collect_stats(df, Symbol[:most_residual, :profile_curvature, :transversality, :phi_obs, :zeta, :L_obukhov, :ustar])
     stats_csv = joinpath(CSV_DIR, "$(slug)_stats.csv")
@@ -446,6 +507,12 @@ for (campaign, rel_path) in CAMPAIGN_SOURCES
             :n => hasproperty(df, :L_obukhov) ? finite_count(get_numeric_column(df, :L_obukhov)) : 0,
             :mean => hasproperty(df, :L_obukhov) ? finite_mean(get_numeric_column(df, :L_obukhov)) : NaN,
             :present => hasproperty(df, :L_obukhov),
+        ),
+        :profile_uncertainty => Dict(
+            :z_grid => z_eval_grid,
+            :km_q025 => q25,
+            :km_q050 => q50,
+            :km_q975 => q975,
         ),
     )
     model_json = joinpath(JSON_DIR, "$(slug)_model_and_diagnostics.json")
@@ -483,6 +550,7 @@ for (campaign, rel_path) in CAMPAIGN_SOURCES
         netcdf_out,
         metrics_fig,
         heatmap_fig,
+        km_fig,
     ))
 
     push!(overview, (
@@ -517,10 +585,10 @@ open(md_path, "w") do io
     write(io, "\n")
     write(io, "Overview figure: $(basename(overview_fig))\n\n")
     write(io, "## Output Artifact Manifest\n\n")
-    write(io, "| Campaign | Status | Rows | Columns | CSV Stats | JSON | NetCDF | Metrics Figure | Heatmap |\n")
-    write(io, "|---|---:|---:|---:|---|---|---|---|---|\n")
+    write(io, "| Campaign | Status | Rows | Columns | CSV Stats | JSON | NetCDF | Metrics Figure | Heatmap | K_m Ribbon |\n")
+    write(io, "|---|---:|---:|---:|---|---|---|---|---|---|\n")
     for r in eachrow(summary)
-        write(io, "| $(r.campaign) | $(r.status) | $(r.n_rows) | $(r.n_columns) | $(basename(r.stats_csv)) | $(basename(r.model_json)) | $(basename(r.netcdf)) | $(basename(r.metrics_fig)) | $(basename(r.heatmap_fig)) |\n")
+        write(io, "| $(r.campaign) | $(r.status) | $(r.n_rows) | $(r.n_columns) | $(basename(r.stats_csv)) | $(basename(r.model_json)) | $(basename(r.netcdf)) | $(basename(r.metrics_fig)) | $(basename(r.heatmap_fig)) | $(basename(r.km_uncertainty_fig)) |\n")
     end
 end
 
@@ -556,10 +624,10 @@ open(tex_path, "w") do io
     write(io, "  \\label{tab:campaign-production-summary}\n")
     write(io, "  \\begin{tabular}{lccc}\n")
     write(io, "    \\toprule\n")
-    write(io, "    \\textbf{Campaign} & \\textbf{Status} & \\textbf{Rows} & \\textbf{Columns} \\\\ \n")
+    write(io, "    \\textbf{Campaign} & \\textbf{Status} & \\textbf{Rows} & \\textbf{Columns} & \\textbf{K_m Ribbon} \\\\ \n")
     write(io, "    \\midrule\n")
     for r in eachrow(summary)
-        write(io, "    \\texttt{$(r.campaign)} & \\texttt{$(r.status)} & $(r.n_rows) & $(r.n_columns) \\\\ \n")
+        write(io, "    \\texttt{$(r.campaign)} & \\texttt{$(r.status)} & $(r.n_rows) & $(r.n_columns) & \\texttt{$(basename(r.km_uncertainty_fig))} \\\\ \n")
     end
     write(io, "    \\bottomrule\n")
     write(io, "  \\end{tabular}\n")
