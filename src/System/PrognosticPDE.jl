@@ -1,3 +1,10 @@
+# src/System/PrognosticPDE.jl
+"""
+    build_pde_system(closure::AbstractClosure; kwargs...)
+
+Construct a 1D vertical atmospheric boundary layer `ModelingToolkit.PDESystem` for
+prognostic momentum (`u`, `v`) and potential temperature (`theta`) transport.
+"""
 function build_pde_system(
     closure::AbstractClosure;
     z_top::Float64 = 3000.0,
@@ -38,7 +45,10 @@ function build_pde_system(
 
     km = ModelingToolkit.expand_derivatives(Symbolics.substitute(eddy_momentum(closure, state), manifold_subs))
     kh = ModelingToolkit.expand_derivatives(Symbolics.substitute(eddy_heat(closure, state), manifold_subs))
-    flux0 = ModelingToolkit.expand_derivatives(Symbolics.substitute(default_surface_flux(closure, state), manifold_subs))
+
+    # Surface fluxes evaluated via the SurfaceBoundary dispatch interface.
+    tau_s = ModelingToolkit.expand_derivatives(Symbolics.substitute(default_surface_flux(closure, state), manifold_subs))
+    q_s = ModelingToolkit.expand_derivatives(Symbolics.substitute(default_surface_heat_flux(closure, state), manifold_subs))
 
     eqs = [
         Dt(u(t, z)) ~ coriolis * (v(t, z) - v_geostrophic) - Dz(-km * Dz(u(t, z))),
@@ -47,9 +57,9 @@ function build_pde_system(
     ]
 
     bcs = [
-        Dz(u(t, 0.0)) ~ flux0,
+        Dz(u(t, 0.0)) ~ tau_s,
         Dz(v(t, 0.0)) ~ 0.0,
-        Dz(theta(t, 0.0)) ~ 0.0,
+        Dz(theta(t, 0.0)) ~ q_s,
         u(t, z_top) ~ v_geostrophic,
         v(t, z_top) ~ 0.0,
         theta(t, z_top) ~ 0.0,
