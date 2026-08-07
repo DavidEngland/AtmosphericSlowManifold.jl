@@ -221,6 +221,8 @@ function finite_mean(v::AbstractVector{<:Real})
     return isempty(vf) ? NaN : mean(vf)
 end
 
+latex_escape_text(s::AbstractString) = replace(s, "_" => "\\_")
+
 function collect_stats(df::DataFrame, cols::Vector{Symbol})
     rows = NamedTuple[]
     diag = Dict{Symbol, Any}()
@@ -613,7 +615,7 @@ open(tex_path, "w") do io
 
     write(io, "\\begin{figure}[htbp]\n")
     write(io, "  \\centering\n")
-    write(io, "  \\includegraphics[width=0.92\\linewidth]{reports/generated/campaign_exports/figures/$(basename(overview_fig))}\n")
+    write(io, "  \\includegraphics[width=0.92\\linewidth]{campaign_exports/figures/$(basename(overview_fig))}\n")
     write(io, "  \\caption{Comparative campaign overview for derived mean wind speed and mean stability metrics.}\n")
     write(io, "  \\label{fig:campaign-overview}\n")
     write(io, "\\end{figure}\n\n")
@@ -622,12 +624,13 @@ open(tex_path, "w") do io
     write(io, "  \\centering\n")
     write(io, "  \\caption{Campaign Production Output Summary}\n")
     write(io, "  \\label{tab:campaign-production-summary}\n")
-    write(io, "  \\begin{tabular}{lccc}\n")
+    write(io, "  \\begin{tabular}{lcccc}\n")
     write(io, "    \\toprule\n")
-    write(io, "    \\textbf{Campaign} & \\textbf{Status} & \\textbf{Rows} & \\textbf{Columns} & \\textbf{K_m Ribbon} \\\\ \n")
+    write(io, "    \\textbf{Campaign} & \\textbf{Status} & \\textbf{Rows} & \\textbf{Columns} & \\textbf{K\\_m Ribbon} \\\\ \n")
     write(io, "    \\midrule\n")
     for r in eachrow(summary)
-        write(io, "    \\texttt{$(r.campaign)} & \\texttt{$(r.status)} & $(r.n_rows) & $(r.n_columns) & \\texttt{$(basename(r.km_uncertainty_fig))} \\\\ \n")
+        km_name = latex_escape_text(basename(r.km_uncertainty_fig))
+        write(io, "    \\texttt{$(r.campaign)} & \\texttt{$(r.status)} & $(r.n_rows) & $(r.n_columns) & \\texttt{$(km_name)} \\\\ \n")
     end
     write(io, "    \\bottomrule\n")
     write(io, "  \\end{tabular}\n")

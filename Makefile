@@ -6,7 +6,7 @@ JULIA       ?= julia
 PROJECT     ?= --project=.
 SMOKE_ENV   ?= ASM_RUN_SMOKE=1
 
-.PHONY: help instantiate update test test-smoke test-calibration test-export e2e campaign-export campaign-summary campaign-validate campaign-clean pde-benchmark clean
+.PHONY: help instantiate update test test-smoke test-calibration test-export e2e campaign-export campaign-summary campaign-validate campaign-clean pde-benchmark report clean
 
 default: help
 
@@ -64,6 +64,14 @@ campaign-clean:
 ## pde-benchmark: Run physical-closure spectral PDE benchmark and export summary artifacts
 pde-benchmark:
 	$(JULIA) $(PROJECT) scripts/run_pde_closure_benchmark.jl
+
+## report: Build benchmark PDF report from template and generated artifacts
+report:
+	@mkdir -p reports/generated
+	cp templates/report.tex.mustache reports/generated/report.tex
+	cd reports/generated && pdflatex -interaction=nonstopmode report.tex > /dev/null 2>&1
+	cd reports/generated && pdflatex -interaction=nonstopmode report.tex > /dev/null 2>&1
+	@echo "PDF build complete: reports/generated/report.pdf"
 
 ## clean: Remove generated output artifacts, figures, and temporary files
 clean:

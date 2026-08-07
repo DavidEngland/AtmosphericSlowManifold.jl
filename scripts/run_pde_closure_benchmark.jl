@@ -380,6 +380,8 @@ site_table_tex = latex_site_summary_table(
     r2_by_site = r2_best_by_campaign,
     residual_by_site = residual_best_by_campaign,
 )
+# latex_site_summary_table may emit \mathrm{...} in plain table cells; convert to text mode.
+site_table_tex = replace(site_table_tex, r"\\mathrm\{([^}]*)\}" => s"\\texttt{\1}")
 site_table_path = joinpath(TABLE_DIR, "cross_campaign_best_models.tex")
 write_text(site_table_path, site_table_tex)
 
