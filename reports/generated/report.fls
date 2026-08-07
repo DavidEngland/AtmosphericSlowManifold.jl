@@ -246,6 +246,9 @@ INPUT ./pde_benchmark/tables/cross_campaign_best_models.tex
 INPUT ./pde_benchmark/tables/cross_campaign_best_models.tex
 INPUT pde_benchmark/tables/cross_campaign_best_models.tex
 INPUT /usr/local/texlive/2026/texmf-dist/fonts/tfm/jknappen/ec/tcrm1095.tfm
+INPUT ./pde_benchmark/tables/loso_validation_summary.tex
+INPUT ./pde_benchmark/tables/loso_validation_summary.tex
+INPUT pde_benchmark/tables/loso_validation_summary.tex
 INPUT ./pde_benchmark/tables/cases_99_best_equation.tex
 INPUT ./pde_benchmark/tables/cases_99_best_equation.tex
 INPUT pde_benchmark/tables/cases_99_best_equation.tex
@@ -260,13 +263,13 @@ INPUT ./pde_benchmark/figures/cases_99_pareto_r2.png
 INPUT ./pde_benchmark/figures/cases_99_pareto_r2.png
 INPUT ./pde_benchmark/figures/cases_99_pareto_r2.png
 INPUT ./pde_benchmark/figures/cases_99_pareto_r2.png
+INPUT /usr/local/texlive/2026/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc
 INPUT ./pde_benchmark/tables/sheba_best_equation.tex
 INPUT ./pde_benchmark/tables/sheba_best_equation.tex
 INPUT pde_benchmark/tables/sheba_best_equation.tex
 INPUT ./pde_benchmark/tables/sheba_best_terms.tex
 INPUT ./pde_benchmark/tables/sheba_best_terms.tex
 INPUT pde_benchmark/tables/sheba_best_terms.tex
-INPUT /usr/local/texlive/2026/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc
 INPUT ./pde_benchmark/figures/sheba_pareto_rss.png
 INPUT ./pde_benchmark/figures/sheba_pareto_rss.png
 INPUT ./pde_benchmark/figures/sheba_pareto_rss.png

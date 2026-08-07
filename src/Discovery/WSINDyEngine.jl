@@ -46,6 +46,117 @@ function _feature_column_from_obs(obs::ObservationTable, feature::AbstractBasisF
     throw(ArgumentError("Unsupported basis feature type $(typeof(feature))."))
 end
 
+function _solve_bounded_ls(
+    G::AbstractMatrix{Float64},
+    b::AbstractVector{Float64};
+    active::AbstractVector{Int},
+    lower_bounds::Union{Nothing, AbstractVector{Float64}} = nothing,
+    upper_bounds::Union{Nothing, AbstractVector{Float64}} = nothing,
+)
+    n_features = size(G, 2)
+    model = JuMP.Model(HiGHS.Optimizer)
+    JuMP.set_silent(model)
+
+    JuMP.@variable(model, beta[1:n_features])
+
+    inactive = setdiff(collect(1:n_features), collect(active))
+    for j in inactive
+        JuMP.fix(beta[j], 0.0; force = true)
+    end
+
+    if !(lower_bounds === nothing)
+        length(lower_bounds) == n_features || throw(ArgumentError("lower_bounds length must match number of features."))
+        for j in active
+            JuMP.@constraint(model, beta[j] >= lower_bounds[j])
+        end
+    end
+
+    if !(upper_bounds === nothing)
+        length(upper_bounds) == n_features || throw(ArgumentError("upper_bounds length must match number of features."))
+        for j in active
+            JuMP.@constraint(model, beta[j] <= upper_bounds[j])
+        end
+    end
+
+    JuMP.@objective(
+        model,
+        Min,
+        0.5 * sum((sum(G[i, j] * beta[j] for j in 1:n_features) - b[i])^2 for i in 1:size(G, 1)),
+    )
+
+    JuMP.optimize!(model)
+    status = JuMP.termination_status(model)
+    status in (JuMP.MOI.OPTIMAL, JuMP.MOI.LOCALLY_SOLVED) ||
+        throw(ArgumentError("Constrained least-squares failed with status $(status)."))
+
+    return Float64.(JuMP.value.(beta))
+end
+
+"""
+    constrained_stlsq(G, b, λ; lower_bounds=nothing, upper_bounds=nothing, max_iter=100, tol=1e-6)
+
+Perform Sequential Thresholded Least Squares with optional box bounds.
+Use `lower_bounds` with zeros for non-negativity-constrained terms.
+"""
+function constrained_stlsq(
+    G::AbstractMatrix{Float64},
+    b::AbstractVector{Float64},
+    λ::Float64;
+    lower_bounds::Union{Nothing, AbstractVector{Float64}} = nothing,
+    upper_bounds::Union{Nothing, AbstractVector{Float64}} = nothing,
+    max_iter::Int = 100,
+    tol::Float64 = 1e-6,
+)
+    size(G, 1) == length(b) || throw(ArgumentError("G and b dimensions are inconsistent."))
+    λ >= 0.0 || throw(ArgumentError("λ must be non-negative."))
+    max_iter > 0 || throw(ArgumentError("max_iter must be positive."))
+
+    n_features = size(G, 2)
+    support = trues(n_features)
+    beta = zeros(Float64, n_features)
+
+    for _ in 1:max_iter
+        active = findall(identity, support)
+        if isempty(active)
+            return beta
+        end
+
+        beta_new = _solve_bounded_ls(
+            Matrix{Float64}(G),
+            Vector{Float64}(b);
+            active = active,
+            lower_bounds = lower_bounds,
+            upper_bounds = upper_bounds,
+        )
+
+        newly_small = abs.(beta_new) .< λ
+        candidate_support = support .& .!newly_small
+
+        if candidate_support == support || norm(beta_new - beta) <= tol
+            beta = beta_new
+            support = candidate_support
+            break
+        end
+
+        beta = beta_new
+        support = candidate_support
+    end
+
+    final_active = findall(identity, support)
+    if !isempty(final_active)
+        beta = _solve_bounded_ls(
+            Matrix{Float64}(G),
+            Vector{Float64}(b);
+            active = final_active,
+            lower_bounds = lower_bounds,
+            upper_bounds = upper_bounds,
+        )
+    end
+
+    beta[abs.(beta) .< λ] .= 0.0
+    return beta
+end
+
 function _build_feature_evaluation_grid(obs::ObservationTable, library::FeatureLibrary)
     n_features = length(library.features)
     n_features == 0 && return zeros(0, 0)

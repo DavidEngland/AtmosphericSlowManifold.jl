@@ -212,3 +212,28 @@ end
         end
     end
 end
+
+@testset "LOSO LaTeX Export" begin
+    summary = LOSOSummary(
+        LOSOResult[
+            LOSOResult("SHEBA", "model_a", [1.0, 0.5], 0.1, 0.1234, 0.1111, 0.9, 0.95),
+            LOSOResult("CASES-99", "model_b", [1.0, -0.2], 0.2, 0.2234, 0.2111, 0.8, 0.85),
+        ],
+        0.1734,
+        0.777,
+    )
+
+    mktempdir() do d
+        path = joinpath(d, "pde_benchmark", "tables", "loso_validation_summary.tex")
+        out = export_loso_table(summary, path)
+        @test out == path
+        @test isfile(path)
+
+        text = read(path, String)
+        @test occursin("\\begin{tabular}{lcccc}", text)
+        @test occursin("Held-Out Site & Validation RMSE & Validation MAE", text)
+        @test occursin("SHEBA & 0.1234 & 0.1111 & 0.9000 & 95.0\\%", text)
+        @test occursin("\\textbf{Mean Validation RMSE}: 0.1734", text)
+        @test occursin("\\textbf{Stability Score}: 0.777", text)
+    end
+end

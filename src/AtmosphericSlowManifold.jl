@@ -61,6 +61,7 @@ export ObservationTable, read_tower_csv, read_tower_netcdf, read_observation_dat
 export resolve_sibling_data_dir, find_data_files
 
 export GegenbauerBasis, build_weak_library, fit_wsindy_jump, extract_closure
+export constrained_stlsq
 export discover_closure
 export discover
 export AbstractBasisFeature, StateVariable, SpatialDerivative, DiagnosticVariable
@@ -77,7 +78,7 @@ export coefficient_l2_error, precision_recall, structural_hamming_distance, fals
 export IdentifiabilityReport, compute_gram_matrix, compute_mutual_coherence, compute_condition_number, compute_vif, compute_parameter_covariance, analyze_identifiability, prune_by_mutual_coherence
 export CampaignData, LOSOSplit, LOSOResult, LOSOSummary
 export create_loso_splits, evaluate_out_of_sample, run_loso_cross_validation
-export load_campaign_data, load_all_campaigns, run_artifact_loso
+export load_campaign_data, load_all_campaigns, run_artifact_loso, export_loso_table
 export AbstractPhysicalConstraint, PositivityConstraint, MonotonicityConstraint, EnergyConstraint
 export PhysicalConstraintMatrix, assemble_constraint_matrix
 export AbstractTestFunctionFamily, GegenbauerFamily, BSplineFamily

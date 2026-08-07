@@ -3,6 +3,7 @@ using CSV
 using DataFrames
 using JSON3
 using LinearAlgebra
+using Printf
 using Statistics
 
 """
@@ -79,6 +80,58 @@ struct LOSOSummary
     results::Vector{LOSOResult}
     mean_validation_rmse::Float64
     cross_campaign_stability_score::Float64
+end
+
+function _escape_tex_text(str::AbstractString)
+    escaped = String(str)
+    escaped = replace(escaped, "\\" => "\\textbackslash{}")
+    escaped = replace(escaped, "_" => "\\_")
+    escaped = replace(escaped, "%" => "\\%")
+    escaped = replace(escaped, "&" => "\\&")
+    escaped = replace(escaped, "#" => "\\#")
+    escaped = replace(escaped, "{" => "\\{")
+    escaped = replace(escaped, "}" => "\\}")
+    escaped = replace(escaped, string('$') => string('\\', '$'))
+    return escaped
+end
+
+function _fmt4(x::Real)
+    return isfinite(x) ? @sprintf("%.4f", Float64(x)) : "NA"
+end
+
+function _fmt3(x::Real)
+    return isfinite(x) ? @sprintf("%.3f", Float64(x)) : "NA"
+end
+
+function _fmt_pct(x::Real)
+    return isfinite(x) ? @sprintf("%.1f\\%%", 100.0 * Float64(x)) : "NA"
+end
+
+"""
+    export_loso_table(summary::LOSOSummary, filepath::String)
+
+Export a `LOSOSummary` object to a LaTeX tabular snippet matching `report.tex.mustache`.
+"""
+function export_loso_table(summary::LOSOSummary, filepath::String)
+    mkpath(dirname(filepath))
+    open(filepath, "w") do io
+        dollar_tex = string('$')
+        println(io, "\\begin{tabular}{lcccc}")
+        println(io, "\\toprule")
+        println(io, "Held-Out Site & Validation RMSE & Validation MAE & " * dollar_tex * "R^2" * dollar_tex * " & 95\\% Coverage \\\\")
+        println(io, "\\midrule")
+
+        for r in summary.results
+            site = _escape_tex_text(r.val_site_name)
+            println(io, "$(site) & $(_fmt4(r.val_rmse)) & $(_fmt4(r.val_mae)) & $(_fmt4(r.val_r2)) & $(_fmt_pct(r.coverage_probability)) \\\\")
+        end
+
+        println(io, "\\midrule")
+        println(io, "\\multicolumn{5}{l}{\\textbf{Mean Validation RMSE}: $(_fmt4(summary.mean_validation_rmse)) \\quad \\textbf{Stability Score}: $(_fmt3(summary.cross_campaign_stability_score))} \\\\")
+        println(io, "\\bottomrule")
+        println(io, "\\end{tabular}")
+    end
+    return filepath
 end
 
 function _site_slug(site_name::String)

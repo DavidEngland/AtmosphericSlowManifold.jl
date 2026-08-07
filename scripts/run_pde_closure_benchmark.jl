@@ -79,6 +79,12 @@ function rmse(a::Vector{Float64}, b::Vector{Float64})
     return sqrt(mean((a .- b) .^ 2))
 end
 
+finite_or_missing(x::Real) = isfinite(x) ? Float64(x) : nothing
+
+function finite_or_na_str(x::Real; digits::Int = 4)
+    return isfinite(x) ? string(round(Float64(x); digits = digits)) : "NA"
+end
+
 function r2_score(pred::Vector{Float64}, truth::Vector{Float64})
     length(pred) == length(truth) || throw(DimensionMismatch("Vectors must match for R2."))
     tbar = mean(truth)
@@ -152,6 +158,13 @@ end
 
 function campaign_symbol(campaign::String)
     return Symbol(replace(lowercase(campaign), "-" => "_"))
+end
+
+function _site_slug(site_name::String)
+    slug = lowercase(strip(site_name))
+    slug = replace(slug, "-" => "_")
+    slug = replace(slug, " " => "_")
+    return slug
 end
 
 function model_from_profile(
@@ -373,11 +386,11 @@ for (campaign, payload) in CAMPAIGNS
         push!(candidate_rows, Dict(
             "candidate" => result.closure_labels[i],
             "k" => result.candidate_models[i].sparsity_level,
-            "residual_norm" => result.candidate_models[i].residual_norm,
-            "rss" => result.rss_vals[i],
-            "r2" => result.r2_vals[i],
-            "aic" => result.aic_vals[i],
-            "bic" => result.bic_vals[i],
+            "residual_norm" => finite_or_missing(result.candidate_models[i].residual_norm),
+            "rss" => finite_or_missing(result.rss_vals[i]),
+            "r2" => finite_or_missing(result.r2_vals[i]),
+            "aic" => finite_or_missing(result.aic_vals[i]),
+            "bic" => finite_or_missing(result.bic_vals[i]),
             "pareto_rss" => in(i, result.pareto_rss.indices),
             "pareto_r2" => in(i, result.pareto_r2.indices),
         ))
@@ -421,9 +434,9 @@ for (campaign, payload) in CAMPAIGNS
         "best_candidate" => result.best_label,
         "best_model" => Dict(
             "terms" => length(result.best_model.terms),
-            "residual_norm" => result.best_model.residual_norm,
-            "aic" => minimum(result.aic_vals),
-            "bic" => minimum(result.bic_vals),
+            "residual_norm" => finite_or_missing(result.best_model.residual_norm),
+            "aic" => finite_or_missing(minimum(result.aic_vals)),
+            "bic" => finite_or_missing(minimum(result.bic_vals)),
             "latex" => eq_tex,
         ),
         "candidates" => candidate_rows,
@@ -445,10 +458,55 @@ export_cross_campaign_summary_tex(
     residual_best_by_campaign,
 )
 
+artifact_root = joinpath(pwd(), "reports", "generated", "campaign_exports")
+loso_discovery = function (_train_campaigns, X, y; kwargs...)
+    coeffs = X \ y
+    rss = sum(abs2, X * coeffs .- y)
+    return (coefficients = coeffs, discovered_model = "linear_ols", train_rss = rss)
+end
+
+loso_summary = run_artifact_loso(
+    artifact_root,
+    loso_discovery;
+    sites = ["SHEBA", "CASES-99", "FLOSS", "BLLAST"],
+    feature_cols = [1],
+    target_col = 2,
+)
+
+loso_table_path = joinpath(TABLE_DIR, "loso_validation_summary.tex")
+export_loso_table(loso_summary, loso_table_path)
+
+loso_json_path = joinpath(OUTPUT_ROOT, "loso_summary.json")
+loso_json = Dict(
+    "n_results" => length(loso_summary.results),
+    "mean_validation_rmse" => finite_or_missing(loso_summary.mean_validation_rmse),
+    "cross_campaign_stability_score" => finite_or_missing(loso_summary.cross_campaign_stability_score),
+    "results" => [
+        Dict(
+            "val_site_name" => r.val_site_name,
+            "discovered_model" => r.discovered_model,
+            "coefficients" => r.coefficients,
+            "train_rss" => finite_or_missing(r.train_rss),
+            "val_rmse" => finite_or_missing(r.val_rmse),
+            "val_mae" => finite_or_missing(r.val_mae),
+            "val_r2" => finite_or_missing(r.val_r2),
+            "coverage_probability" => finite_or_missing(r.coverage_probability),
+        ) for r in loso_summary.results
+    ],
+)
+open(loso_json_path, "w") do io
+    JSON3.pretty(io, loso_json)
+end
+
 summary_data = Dict(
     "generated_at" => string(Dates.now()),
     "n_campaigns" => length(CAMPAIGNS),
     "campaigns" => summary_campaigns,
+    "loso" => Dict(
+        "n_results" => length(loso_summary.results),
+        "mean_validation_rmse" => finite_or_missing(loso_summary.mean_validation_rmse),
+        "cross_campaign_stability_score" => finite_or_missing(loso_summary.cross_campaign_stability_score),
+    ),
 )
 open(SUMMARY_PATH, "w") do io
     JSON3.pretty(io, summary_data)
@@ -480,3 +538,4 @@ println("Summary CSV: ", summary_path)
 println("Summary JSON: ", SUMMARY_PATH)
 println("Profile figure: ", fig_path)
 println("Cross-campaign LaTeX table: ", site_table_path)
+println("LOSO LaTeX table: ", loso_table_path)

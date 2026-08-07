@@ -1,0 +1,55 @@
+{
+    "n_results": 4,
+    "mean_validation_rmse": 10.663910523692437,
+    "cross_campaign_stability_score": 1,
+    "results": [
+        {
+            "train_rss": 5.995505520010422e7,
+            "val_site_name": "SHEBA",
+            "val_r2": 0.04966724637861686,
+            "val_rmse": 1.191160582058728,
+            "discovered_model": "linear_ols",
+            "val_mae": 0.9546729290776436,
+            "coverage_probability": 0.9494060712714474,
+            "coefficients": [
+                2.3171059598396098
+            ]
+        },
+        {
+            "train_rss": 5.9854512436450765e7,
+            "val_site_name": "CASES-99",
+            "val_r2": -10.237143953057915,
+            "val_rmse": 3.986680554168011,
+            "discovered_model": "linear_ols",
+            "val_mae": 1.664517074234382,
+            "coverage_probability": 0.9957173447537473,
+            "coefficients": [
+                2.321003167373152
+            ]
+        },
+        {
+            "train_rss": 76693.33905357218,
+            "val_site_name": "FLOSS",
+            "val_r2": 0.06605597158539633,
+            "val_rmse": 35.197358318875125,
+            "discovered_model": "linear_ols",
+            "val_mae": 15.486659824371976,
+            "coverage_probability": 0.9279902819368326,
+            "coefficients": [
+                0.5985059430659455
+            ]
+        },
+        {
+            "train_rss": 5.992915862478215e7,
+            "val_site_name": "BLLAST",
+            "val_r2": -0.46823687288160776,
+            "val_rmse": 2.2804426396678856,
+            "discovered_model": "linear_ols",
+            "val_mae": 2.0910871834287565,
+            "coverage_probability": 0.435,
+            "coefficients": [
+                2.316812602983908
+            ]
+        }
+    ]
+}

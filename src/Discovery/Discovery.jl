@@ -15,4 +15,5 @@ include("ModelSelection.jl")
 
 export CampaignData, LOSOSplit, LOSOResult, LOSOSummary
 export create_loso_splits, evaluate_out_of_sample, run_loso_cross_validation
-export load_campaign_data, load_all_campaigns, run_artifact_loso
+export load_campaign_data, load_all_campaigns, run_artifact_loso, export_loso_table
+export constrained_stlsq

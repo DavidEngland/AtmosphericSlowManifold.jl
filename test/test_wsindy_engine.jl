@@ -37,3 +37,22 @@ using ModelingToolkit
     km_expr = eddy_momentum(closure, ms)
     @test km_expr isa Num
 end
+
+@testset "Constrained STLSQ" begin
+    G = [
+        1.0 0.0 1.0
+        0.0 1.0 1.0
+        1.0 1.0 2.0
+        2.0 1.0 3.0
+    ]
+    b = [0.5, 0.5, 1.0, 1.5]
+
+    lb = [0.0, 0.0, 0.0]
+    beta = constrained_stlsq(G, b, 1e-6; lower_bounds = lb, max_iter = 50, tol = 1e-10)
+
+    @test length(beta) == 3
+    @test all(beta .>= -1e-10)
+
+    beta_sparse = constrained_stlsq(G, b, 0.2; lower_bounds = lb, max_iter = 50)
+    @test count(abs.(beta_sparse) .> 1e-8) <= count(abs.(beta) .> 1e-8)
+end

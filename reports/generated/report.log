@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.3.22)  7 AUG 2026 16:27
+This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.3.22)  7 AUG 2026 18:43
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -537,7 +537,7 @@ You've lost some text.  Try typing  <return>  to proceed.
 If that doesn't work, type  X <return>  to quit.
 
 
-Overfull \hbox (72.66957pt too wide) in paragraph at lines 5--15
+Overfull \hbox (83.16325pt too wide) in paragraph at lines 5--15
  [][] 
  []
 
@@ -553,13 +553,12 @@ l.17 \begin{figure}[htbp]
 You've lost some text.  Try typing  <return>  to proceed.
 If that doesn't work, type  X <return>  to quit.
 
-<campaign_exports/figures/campaign_overview.png, id=57, 1104.125pt x 903.375pt>
-
+<campaign_exports/figures/campaign_overview.png, id=62, 1104.125pt x 803.0pt>
 File: campaign_exports/figures/campaign_overview.png Graphic file (type png)
 <use campaign_exports/figures/campaign_overview.png>
 Package pdftex.def Info: campaign_exports/figures/campaign_overview.png  used o
 n input line 19.
-(pdftex.def)             Requested size: 416.72963pt x 340.95651pt.
+(pdftex.def)             Requested size: 416.72963pt x 303.07245pt.
 
 ! LaTeX Error: Not in outer par mode.
 
@@ -577,7 +576,7 @@ File: campaign_exports/figures/campaign_overview.png Graphic file (type png)
 <use campaign_exports/figures/campaign_overview.png>
 Package pdftex.def Info: campaign_exports/figures/campaign_overview.png  used o
 n input line 51.
-(pdftex.def)             Requested size: 430.31812pt x 352.0805pt.
+(pdftex.def)             Requested size: 430.31812pt x 312.96045pt.
  [2
 
 ]
@@ -593,7 +592,7 @@ Package hyperref Warning: Token not allowed in a PDF string (Unicode):
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
 (hyperref)                removing `math shift' on input line 56.
 
-<campaign_exports/figures/cases_99_km_uncertainty.png, id=68, 803.0pt x 702.625
+<campaign_exports/figures/cases_99_km_uncertainty.png, id=73, 803.0pt x 702.625
 pt>
 File: campaign_exports/figures/cases_99_km_uncertainty.png Graphic file (type p
 ng)
@@ -601,7 +600,7 @@ ng)
 Package pdftex.def Info: campaign_exports/figures/cases_99_km_uncertainty.png  
 used on input line 64.
 (pdftex.def)             Requested size: 217.42265pt x 190.24734pt.
-<campaign_exports/figures/sheba_km_uncertainty.png, id=69, 803.0pt x 702.625pt>
+<campaign_exports/figures/sheba_km_uncertainty.png, id=74, 803.0pt x 702.625pt>
 
 File: campaign_exports/figures/sheba_km_uncertainty.png Graphic file (type png)
 
@@ -609,7 +608,7 @@ File: campaign_exports/figures/sheba_km_uncertainty.png Graphic file (type png)
 Package pdftex.def Info: campaign_exports/figures/sheba_km_uncertainty.png  use
 d on input line 70.
 (pdftex.def)             Requested size: 217.42265pt x 190.24734pt.
-<campaign_exports/figures/floss_km_uncertainty.png, id=70, 803.0pt x 702.625pt>
+<campaign_exports/figures/floss_km_uncertainty.png, id=75, 803.0pt x 702.625pt>
 
 File: campaign_exports/figures/floss_km_uncertainty.png Graphic file (type png)
 
@@ -617,7 +616,7 @@ File: campaign_exports/figures/floss_km_uncertainty.png Graphic file (type png)
 Package pdftex.def Info: campaign_exports/figures/floss_km_uncertainty.png  use
 d on input line 78.
 (pdftex.def)             Requested size: 217.42265pt x 190.24734pt.
-<campaign_exports/figures/bllast_km_uncertainty.png, id=71, 803.0pt x 702.625pt
+<campaign_exports/figures/bllast_km_uncertainty.png, id=76, 803.0pt x 702.625pt
 >
 File: campaign_exports/figures/bllast_km_uncertainty.png Graphic file (type png
 )
@@ -626,14 +625,14 @@ Package pdftex.def Info: campaign_exports/figures/bllast_km_uncertainty.png  us
 ed on input line 84.
 (pdftex.def)             Requested size: 217.42265pt x 190.24734pt.
 [3 <./campaign_exports/figures/campaign_overview.png>]
-<campaign_exports/figures/cases_99_ri_heatmap.png, id=78, 1104.125pt x 702.625p
+<campaign_exports/figures/cases_99_ri_heatmap.png, id=83, 1104.125pt x 702.625p
 t>
 File: campaign_exports/figures/cases_99_ri_heatmap.png Graphic file (type png)
 <use campaign_exports/figures/cases_99_ri_heatmap.png>
 Package pdftex.def Info: campaign_exports/figures/cases_99_ri_heatmap.png  used
  on input line 97.
 (pdftex.def)             Requested size: 217.42265pt x 138.35683pt.
-<campaign_exports/figures/floss_ri_heatmap.png, id=79, 1104.125pt x 702.625pt>
+<campaign_exports/figures/floss_ri_heatmap.png, id=84, 1104.125pt x 702.625pt>
 File: campaign_exports/figures/floss_ri_heatmap.png Graphic file (type png)
 <use campaign_exports/figures/floss_ri_heatmap.png>
 Package pdftex.def Info: campaign_exports/figures/floss_ri_heatmap.png  used on
@@ -683,62 +682,63 @@ With luck, this will get me unwedged. But if you
 really didn't forget anything, try typing `2' now; then
 my insertion and my current dilemma will both disappear.
 
-) (./pde_benchmark/tables/cases_99_best_equation.tex)
+) (./pde_benchmark/tables/loso_validation_summary.tex)
+(./pde_benchmark/tables/cases_99_best_equation.tex)
 (./pde_benchmark/tables/cases_99_best_terms.tex)
-<pde_benchmark/figures/cases_99_pareto_rss.png, id=90, 602.25pt x 401.5pt>
+<pde_benchmark/figures/cases_99_pareto_rss.png, id=95, 602.25pt x 401.5pt>
 File: pde_benchmark/figures/cases_99_pareto_rss.png Graphic file (type png)
 <use pde_benchmark/figures/cases_99_pareto_rss.png>
 Package pdftex.def Info: pde_benchmark/figures/cases_99_pareto_rss.png  used on
- input line 141.
+ input line 152.
 (pdftex.def)             Requested size: 217.42265pt x 144.95035pt.
-<pde_benchmark/figures/cases_99_pareto_r2.png, id=91, 602.25pt x 401.5pt>
+<pde_benchmark/figures/cases_99_pareto_r2.png, id=96, 602.25pt x 401.5pt>
 File: pde_benchmark/figures/cases_99_pareto_r2.png Graphic file (type png)
 <use pde_benchmark/figures/cases_99_pareto_r2.png>
 Package pdftex.def Info: pde_benchmark/figures/cases_99_pareto_r2.png  used on 
-input line 147.
+input line 158.
 (pdftex.def)             Requested size: 217.42265pt x 144.95035pt.
+ [6
+
+{/usr/local/texlive/2026/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc}]
 
 (./pde_benchmark/tables/sheba_best_equation.tex)
-(./pde_benchmark/tables/sheba_best_terms.tex) [6
-
-{/usr/local/texlive/2026/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc} 
-<./pde_benchmark/figures/cases_99_pareto_rss.png> <./pde_benchmark/figures/case
-s_99_pareto_r2.png>]
-<pde_benchmark/figures/sheba_pareto_rss.png, id=102, 602.25pt x 401.5pt>
+(./pde_benchmark/tables/sheba_best_terms.tex)
+<pde_benchmark/figures/sheba_pareto_rss.png, id=106, 602.25pt x 401.5pt>
 File: pde_benchmark/figures/sheba_pareto_rss.png Graphic file (type png)
 <use pde_benchmark/figures/sheba_pareto_rss.png>
 Package pdftex.def Info: pde_benchmark/figures/sheba_pareto_rss.png  used on in
-put line 171.
+put line 182.
 (pdftex.def)             Requested size: 217.42265pt x 144.95035pt.
-<pde_benchmark/figures/sheba_pareto_r2.png, id=103, 602.25pt x 401.5pt>
+<pde_benchmark/figures/sheba_pareto_r2.png, id=107, 602.25pt x 401.5pt>
 File: pde_benchmark/figures/sheba_pareto_r2.png Graphic file (type png)
 <use pde_benchmark/figures/sheba_pareto_r2.png>
 Package pdftex.def Info: pde_benchmark/figures/sheba_pareto_r2.png  used on inp
-ut line 177.
+ut line 188.
 (pdftex.def)             Requested size: 217.42265pt x 144.95035pt.
-<pde_benchmark/figures/pde_profile_comparison.png, id=104, 1204.5pt x 501.875pt
+<pde_benchmark/figures/pde_profile_comparison.png, id=108, 1204.5pt x 501.875pt
 >
 File: pde_benchmark/figures/pde_profile_comparison.png Graphic file (type png)
 <use pde_benchmark/figures/pde_profile_comparison.png>
 Package pdftex.def Info: pde_benchmark/figures/pde_profile_comparison.png  used
- on input line 188.
+ on input line 199.
 (pdftex.def)             Requested size: 407.66833pt x 169.86177pt.
- [7 <./pde_benchmark/figures/sheba_pareto_rss.png> <./pde_benchmark/figures/she
-ba_pareto_r2.png> <./pde_benchmark/figures/pde_profile_comparison.png>] (./repo
-rt.aux)
+ [7 <./pde_benchmark/figures/cases_99_pareto_rss.png> <./pde_benchmark/figures/
+cases_99_pareto_r2.png> <./pde_benchmark/figures/sheba_pareto_rss.png> <./pde_b
+enchmark/figures/sheba_pareto_r2.png>] [8 <./pde_benchmark/figures/pde_profile_
+comparison.png>] (./report.aux)
  ***********
 LaTeX2e <2025-11-01>
 L3 programming layer <2026-01-19>
  ***********
 Package rerunfilecheck Info: File `report.out' has not changed.
-(rerunfilecheck)             Checksum: 9B1727A0C48823BA670548209DE7C57F;1908.
+(rerunfilecheck)             Checksum: E3639E14400656667BB94F1ABD442E6C;2187.
  ) 
 Here is how much of TeX's memory you used:
- 14525 strings out of 467525
- 235810 string characters out of 5418982
- 684669 words of memory out of 5000000
- 43151 multiletter control sequences out of 15000+600000
- 640207 words of font info for 118 fonts, out of 8000000 for 9000
+ 14540 strings out of 467525
+ 236202 string characters out of 5418982
+ 685780 words of memory out of 5000000
+ 43156 multiletter control sequences out of 15000+600000
+ 640309 words of font info for 120 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  75i,13n,84p,1003b,576s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx10.pfb
@@ -755,10 +755,10 @@ ive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/local/texli
 ve/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb></usr/local/texlive
 /2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt10.pfb></usr/local/texlive/
 2026/texmf-dist/fonts/type1/public/cm-super/sfrm1095.pfb>
-Output written on report.pdf (7 pages, 536401 bytes).
+Output written on report.pdf (8 pages, 532699 bytes).
 PDF statistics:
- 182 PDF objects out of 1000 (max. 8388607)
- 131 compressed objects within 2 object streams
- 29 named destinations out of 1000 (max. 500000)
- 31357 words of extra memory for PDF output out of 35830 (max. 10000000)
+ 193 PDF objects out of 1000 (max. 8388607)
+ 141 compressed objects within 2 object streams
+ 32 named destinations out of 1000 (max. 500000)
+ 31365 words of extra memory for PDF output out of 35830 (max. 10000000)
 

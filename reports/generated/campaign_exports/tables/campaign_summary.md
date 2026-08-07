@@ -1,15 +1,15 @@
 # Campaign Production Summary
 
-Generated at UTC: 2026-08-07T17:30:28.775
+Generated at UTC: 2026-08-07T23:42:50.667
 
 ## Campaign Analysis Summary
 
-| Campaign | Observations | Height Levels | Mean Wind Speed (m s^-1) | Mean Richardson Number |
+| Campaign | Observations | Height Levels | Mean Wind Speed (m s^-1) | Median Richardson Number |
 |---|---:|---:|---:|---:|
-| BLLAST | 5600 | 18 | 11.335 | 0.235 |
-| SHEBA | 2273 | 0 | 4.978 | 0.345 |
-| FLOSS | 70796 | 18 | 28.755 | 0.212 |
-| CASES-99 | 6538 | 18 | 8.41 | 0.24 |
+| BLLAST | 5600 | 18 | 11.335 | 0.172 |
+| SHEBA | 2273 | 0 | 4.978 | 0.104 |
+| FLOSS | 70796 | 18 | 28.755 | 0.225 |
+| CASES-99 | 6538 | 18 | 8.41 | 0.2 |
 
 Overview figure: campaign_overview.png
 

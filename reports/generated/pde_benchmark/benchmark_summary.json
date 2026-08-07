@@ -1,0 +1,85 @@
+{
+    "loso": {
+        "n_results": 4,
+        "mean_validation_rmse": 10.663910523692437,
+        "cross_campaign_stability_score": 1
+    },
+    "generated_at": "2026-08-07T18:28:54.898",
+    "campaigns": {
+        "SHEBA": {
+            "n_candidates": 2,
+            "best_model": {
+                "bic": null,
+                "residual_norm": null,
+                "latex": "\\frac{\\partial u}{\\partial t} = 4.97758\\,u + 0\\,\\frac{\\partial u}{\\partial z}",
+                "aic": null,
+                "terms": 2
+            },
+            "n_pareto_rss": 0,
+            "n_pareto_r2": 0,
+            "best_candidate": "baseline",
+            "candidates": [
+                {
+                    "bic": null,
+                    "residual_norm": null,
+                    "r2": null,
+                    "k": 2,
+                    "aic": null,
+                    "pareto_r2": false,
+                    "rss": null,
+                    "pareto_rss": false,
+                    "candidate": "baseline"
+                },
+                {
+                    "bic": null,
+                    "residual_norm": null,
+                    "r2": null,
+                    "k": 2,
+                    "aic": null,
+                    "pareto_r2": false,
+                    "rss": null,
+                    "pareto_rss": false,
+                    "candidate": "physical"
+                }
+            ]
+        },
+        "CASES-99": {
+            "n_candidates": 2,
+            "best_model": {
+                "bic": null,
+                "residual_norm": null,
+                "latex": "\\frac{\\partial u}{\\partial t} = 8.40982\\,u + 0\\,\\frac{\\partial u}{\\partial z}",
+                "aic": null,
+                "terms": 2
+            },
+            "n_pareto_rss": 0,
+            "n_pareto_r2": 0,
+            "best_candidate": "baseline",
+            "candidates": [
+                {
+                    "bic": null,
+                    "residual_norm": null,
+                    "r2": null,
+                    "k": 2,
+                    "aic": null,
+                    "pareto_r2": false,
+                    "rss": null,
+                    "pareto_rss": false,
+                    "candidate": "baseline"
+                },
+                {
+                    "bic": null,
+                    "residual_norm": null,
+                    "r2": null,
+                    "k": 2,
+                    "aic": null,
+                    "pareto_r2": false,
+                    "rss": null,
+                    "pareto_rss": false,
+                    "candidate": "physical"
+                }
+            ]
+        }
+    },
+    "n_campaigns": 2
+}

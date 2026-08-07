@@ -4,6 +4,7 @@ using CSV
 using DataFrames
 using Dates
 using Plots
+using Plots.PlotMeasures
 using Statistics
 using Random
 
@@ -52,14 +53,14 @@ end
 function finite_stats(v::Vector{Float64})
     vf = filter(isfinite, v)
     if isempty(vf)
-        return (n = 0, mean = NaN, std = NaN, min = NaN, max = NaN)
+        return (n=0, mean=NaN, std=NaN, min=NaN, max=NaN)
     end
     return (
-        n = length(vf),
-        mean = mean(vf),
-        std = length(vf) > 1 ? std(vf) : 0.0,
-        min = minimum(vf),
-        max = maximum(vf),
+        n=length(vf),
+        mean=mean(vf),
+        std=length(vf) > 1 ? std(vf) : 0.0,
+        min=minimum(vf),
+        max=maximum(vf),
     )
 end
 
@@ -165,42 +166,42 @@ function apply_observation_ingestion!(df::DataFrame, abs_path::String)
     kwargs = if hasproperty(df, :sample_index) && hasproperty(df, :eta_1) && hasproperty(df, :eta_2) && hasproperty(df, :theta_star)
         temp_candidate = choose_finite_column(df, Symbol[:theta_star, :eta_3, :sample_index], :sample_index)
         (
-            z_col = :sample_index,
-            u_col = :eta_1,
-            v_col = :eta_2,
-            temp_col = temp_candidate,
-            ustar_col = choose_optional_finite_column(df, Symbol[:ustar, :u_star]),
-            hs_col = get_existing_column(df, Symbol[:hs, :h, :shf, :sensible_heat_flux]),
+            z_col=:sample_index,
+            u_col=:eta_1,
+            v_col=:eta_2,
+            temp_col=temp_candidate,
+            ustar_col=choose_optional_finite_column(df, Symbol[:ustar, :u_star]),
+            hs_col=get_existing_column(df, Symbol[:hs, :h, :shf, :sensible_heat_flux]),
         )
     elseif hasproperty(df, :z_lo) && hasproperty(df, :ws_lo) && hasproperty(df, :ws_hi) && hasproperty(df, :T_lo)
         (
-            z_col = :z_lo,
-            u_col = :ws_lo,
-            v_col = :ws_hi,
-            temp_col = :T_lo,
-            q_col = choose_optional_finite_column(df, Symbol[:q_lo, :q, :q_hi, :specific_humidity]),
-            ustar_col = choose_optional_finite_column(df, Symbol[:ustar, :u_star]),
-            hs_col = get_existing_column(df, Symbol[:hs, :h, :shf, :sensible_heat_flux]),
-            theta_ref_col = get_existing_column(df, Symbol[:T_lo, :theta, :theta_k]),
+            z_col=:z_lo,
+            u_col=:ws_lo,
+            v_col=:ws_hi,
+            temp_col=:T_lo,
+            q_col=choose_optional_finite_column(df, Symbol[:q_lo, :q, :q_hi, :specific_humidity]),
+            ustar_col=choose_optional_finite_column(df, Symbol[:ustar, :u_star]),
+            hs_col=get_existing_column(df, Symbol[:hs, :h, :shf, :sensible_heat_flux]),
+            theta_ref_col=get_existing_column(df, Symbol[:T_lo, :theta, :theta_k]),
         )
     else
         (
-            z_col = :z,
-            u_col = :u,
-            v_col = :v,
-            temp_col = :theta,
-            q_col = choose_optional_finite_column(df, Symbol[:q]),
-            ustar_col = choose_optional_finite_column(df, Symbol[:u_star, :ustar]),
-            hs_col = get_existing_column(df, Symbol[:hs, :h, :shf, :sensible_heat_flux]),
-            theta_ref_col = get_existing_column(df, Symbol[:theta, :theta_k]),
+            z_col=:z,
+            u_col=:u,
+            v_col=:v,
+            temp_col=:theta,
+            q_col=choose_optional_finite_column(df, Symbol[:q]),
+            ustar_col=choose_optional_finite_column(df, Symbol[:u_star, :ustar]),
+            hs_col=get_existing_column(df, Symbol[:hs, :h, :shf, :sensible_heat_flux]),
+            theta_ref_col=get_existing_column(df, Symbol[:theta, :theta_k]),
         )
     end
 
     obs = read_observation_data(
         abs_path;
         kwargs...,
-        compute_obukhov = true,
-        surface_flux_aliases = true,
+        compute_obukhov=true,
+        surface_flux_aliases=true,
     )
 
     for c in (:sensible_heat_flux, :L_obukhov)
@@ -221,16 +222,21 @@ function finite_mean(v::AbstractVector{<:Real})
     return isempty(vf) ? NaN : mean(vf)
 end
 
+function finite_median(v::AbstractVector{<:Real})
+    vf = filter(isfinite, v)
+    return isempty(vf) ? NaN : median(vf)
+end
+
 latex_escape_text(s::AbstractString) = replace(s, "_" => "\\_")
 
 function collect_stats(df::DataFrame, cols::Vector{Symbol})
     rows = NamedTuple[]
-    diag = Dict{Symbol, Any}()
+    diag = Dict{Symbol,Any}()
     for c in cols
         v = get_numeric_column(df, c)
         isempty(v) && continue
         st = finite_stats(v)
-        push!(rows, (metric = String(c), n = st.n, mean = st.mean, std = st.std, min = st.min, max = st.max))
+        push!(rows, (metric=String(c), n=st.n, mean=st.mean, std=st.std, min=st.min, max=st.max))
         diag[c] = Dict(
             :n => st.n,
             :mean => st.mean,
@@ -279,9 +285,9 @@ function mean_ri_value(df::DataFrame)
     rm = ri_matrix(df)
     if !(rm === nothing)
         _, _, mat = rm
-        return finite_mean(vec(mat))
+        return finite_median(vec(mat))
     elseif hasproperty(df, :zeta)
-        return finite_mean(get_numeric_column(df, :zeta))
+        return finite_median(get_numeric_column(df, :zeta))
     end
     return NaN
 end
@@ -303,7 +309,7 @@ function mean_wind_speed(df::DataFrame)
     return NaN
 end
 
-function compute_km_profile_uncertainty(df::DataFrame, z_grid::Vector{Float64}; n_draws::Int = 1000)
+function compute_km_profile_uncertainty(df::DataFrame, z_grid::Vector{Float64}; n_draws::Int=1000)
     Random.seed!(42)
 
     ustar_mean = hasproperty(df, :ustar) ? finite_mean(get_numeric_column(df, :ustar)) : 0.25
@@ -338,19 +344,25 @@ function compute_km_profile_uncertainty(df::DataFrame, z_grid::Vector{Float64}; 
 end
 
 function plot_km_uncertainty_ribbon(campaign::String, slug::String, z_grid::Vector{Float64}, q25::Vector{Float64}, q50::Vector{Float64}, q975::Vector{Float64})
+    max_km = max(1.0, maximum(filter(isfinite, q975)))
+
     p = plot(
         q50,
         z_grid,
-        ribbon = (q50 .- q25, q975 .- q50),
-        fillalpha = 0.35,
-        linecolor = :navy,
-        fillcolor = :skyblue,
-        linewidth = 2,
-        xlabel = "Eddy Diffusivity K_m (m^2 s^-1)",
-        ylabel = "Height z (m)",
-        title = "$(campaign): Vertical Eddy Diffusivity K_m(z) (95% Credibility Ribbon)",
-        legend = false,
-        size = (800, 700),
+        ribbon=(max.(0.0, q50 .- q25), q975 .- q50),
+        fillalpha=0.35,
+        linecolor=:navy,
+        fillcolor=:skyblue,
+        linewidth=2,
+        xlabel="Eddy Diffusivity K_m (m² s⁻¹)",
+        ylabel="Height z (m)",
+        title="$(campaign): Vertical Eddy Diffusivity K_m(z)",
+        legend=false,
+        xlims=(0.0, 1.05 * max_km),
+        ylims=(0.0, maximum(z_grid)),
+        left_margin=5mm,
+        bottom_margin=5mm,
+        size=(800, 700),
     )
     out = joinpath(FIG_DIR, "$(slug)_km_uncertainty.png")
     savefig(p, out)
@@ -385,26 +397,60 @@ function plot_metrics(df::DataFrame, campaign::String, slug::String)
     isempty(cols) && return nothing
 
     x = 1:nrow(df)
-    p = plot(size = (1100, 700), xlabel = "Sample Index", ylabel = "Metric Value", title = "$(campaign): Diagnostic Metrics")
+    n_metrics = length(cols)
+    subplots = []
+
     for c in cols
         y = get_numeric_column(df, c)
-        plot!(p, x, y, lw = 2, label = String(c))
+        yf = filter(isfinite, y)
+
+        ymin, ymax = isempty(yf) ? (0.0, 1.0) : (quantile(yf, 0.01), quantile(yf, 0.99))
+        if ymin == ymax
+            ymin -= 0.1
+            ymax += 0.1
+        else
+            pad = 0.05 * (ymax - ymin)
+            ymin -= pad
+            ymax += pad
+        end
+
+        sp = plot(
+            x, y,
+            lw=1.5,
+            label=false,
+            ylabel=String(c),
+            ylims=(ymin, ymax),
+            title=String(c),
+            titlefontsize=10,
+            guidefontsize=8,
+            tickfontsize=7,
+            left_margin=5mm,
+        )
+        push!(subplots, sp)
     end
+
+    p = plot(subplots..., layout=(n_metrics, 1), size=(1100, 200 * n_metrics), xlabel="Sample Index", bottom_margin=5mm)
     out = joinpath(FIG_DIR, "$(slug)_metrics.png")
     savefig(p, out)
     return out
 end
 
 function plot_ri_heatmap(campaign::String, slug::String, z_grid::Vector{Float64}, t_grid::Vector{Float64}, mat::Matrix{Float64})
+    mat_clipped = clamp.(mat, -0.5, 2.0)
+
     p = heatmap(
         t_grid,
         z_grid,
-        mat,
-        xlabel = "Sample Index",
-        ylabel = "Height Proxy z (m)",
-        colorbar_title = "Ri_g",
-        title = "$(campaign): Ri_g(z, t) Heatmap",
-        size = (1100, 700),
+        mat_clipped,
+        xlabel="Sample Index",
+        ylabel="Height z (m)",
+        colorbar_title="Ri_g (clamped [-0.5, 2.0])",
+        clims=(-0.5, 2.0),
+        color=:cividis,
+        title="$(campaign): Gradient Richardson Number Ri_g(z, t)",
+        left_margin=5mm,
+        bottom_margin=5mm,
+        size=(1100, 700),
     )
     out = joinpath(FIG_DIR, "$(slug)_ri_heatmap.png")
     savefig(p, out)
@@ -416,54 +462,57 @@ function plot_campaign_overview(overview::DataFrame)
     wind = Float64.(overview.mean_wind_speed)
     ri = Float64.(overview.mean_ri)
 
+    max_wind = max(1.0, maximum(filter(isfinite, wind)))
+    max_ri = max(0.5, min(maximum(filter(isfinite, ri)), 5.0))
+
     p1 = bar(
         campaigns,
         wind,
-        xlabel = "Campaign",
-        ylabel = "Mean Wind Speed (m s^-1)",
-        title = "Campaign Mean Wind Speed",
-        legend = false,
-        size = (1100, 450),
-        color = :steelblue,
+        ylabel="Mean Wind Speed (m s⁻¹)",
+        title="Campaign Mean Wind Speed",
+        legend=false,
+        ylims=(0.0, 1.15 * max_wind),
+        color=:steelblue,
+        left_margin=5mm,
     )
 
     p2 = bar(
         campaigns,
-        ri,
-        xlabel = "Campaign",
-        ylabel = "Mean Richardson Number",
-        title = "Campaign Mean Stability",
-        legend = false,
-        size = (1100, 450),
-        color = :darkorange,
+        clamp.(ri, -1.0, max_ri),
+        ylabel="Median Richardson No.",
+        title="Campaign Stability (Median Ri_g)",
+        legend=false,
+        ylims=(min(0.0, minimum(ri)), 1.15 * max_ri),
+        color=:darkorange,
+        left_margin=5mm,
     )
 
-    p = plot(p1, p2; layout = (2, 1), size = (1100, 900))
+    p = plot(p1, p2; layout=(2, 1), size=(1100, 800), bottom_margin=5mm)
     out = joinpath(FIG_DIR, "campaign_overview.png")
     savefig(p, out)
     return out
 end
 
 summary = DataFrame(
-    campaign = String[],
-    source_file = String[],
-    status = String[],
-    n_rows = Int[],
-    n_columns = Int[],
-    stats_csv = String[],
-    model_json = String[],
-    netcdf = String[],
-    metrics_fig = String[],
-    heatmap_fig = String[],
-    km_uncertainty_fig = String[],
+    campaign=String[],
+    source_file=String[],
+    status=String[],
+    n_rows=Int[],
+    n_columns=Int[],
+    stats_csv=String[],
+    model_json=String[],
+    netcdf=String[],
+    metrics_fig=String[],
+    heatmap_fig=String[],
+    km_uncertainty_fig=String[],
 )
 
 overview = DataFrame(
-    campaign = String[],
-    observations = Int[],
-    height_levels = Int[],
-    mean_wind_speed = Float64[],
-    mean_ri = Float64[],
+    campaign=String[],
+    observations=Int[],
+    height_levels=Int[],
+    mean_wind_speed=Float64[],
+    mean_ri=Float64[],
 )
 
 for (campaign, rel_path) in CAMPAIGN_SOURCES
@@ -494,7 +543,7 @@ for (campaign, rel_path) in CAMPAIGN_SOURCES
     export_to_csv(stats_csv, stats_df)
 
     model = build_model_from_row(df)
-    diagnostics = Dict{Symbol, Any}(
+    diagnostics = Dict{Symbol,Any}(
         :campaign => campaign,
         :source_file => abs_path,
         :generated_at_utc => string(now(UTC)),
@@ -577,11 +626,11 @@ open(md_path, "w") do io
     write(io, "# Campaign Production Summary\n\n")
     write(io, "Generated at UTC: $(string(now(UTC)))\n\n")
     write(io, "## Campaign Analysis Summary\n\n")
-    write(io, "| Campaign | Observations | Height Levels | Mean Wind Speed (m s^-1) | Mean Richardson Number |\n")
+    write(io, "| Campaign | Observations | Height Levels | Mean Wind Speed (m s^-1) | Median Richardson Number |\n")
     write(io, "|---|---:|---:|---:|---:|\n")
     for r in eachrow(overview)
-        wind = isfinite(r.mean_wind_speed) ? string(round(r.mean_wind_speed; digits = 3)) : "NA"
-        ri = isfinite(r.mean_ri) ? string(round(r.mean_ri; digits = 3)) : "NA"
+        wind = isfinite(r.mean_wind_speed) ? string(round(r.mean_wind_speed; digits=3)) : "NA"
+        ri = isfinite(r.mean_ri) ? string(round(r.mean_ri; digits=3)) : "NA"
         write(io, "| $(r.campaign) | $(r.observations) | $(r.height_levels) | $(wind) | $(ri) |\n")
     end
     write(io, "\n")
@@ -602,11 +651,11 @@ open(tex_path, "w") do io
     write(io, "  \\label{tab:campaign-overview}\n")
     write(io, "  \\begin{tabular}{lcccc}\n")
     write(io, "    \\toprule\n")
-    write(io, "    \\textbf{Campaign} & \\textbf{Observations} & \\textbf{Height Levels} & \\textbf{Mean Wind Speed (\$\\mathrm{m\\,s^{-1}}\$)} & \\textbf{Mean Richardson No.} \\\\ \n")
+    write(io, "    \\textbf{Campaign} & \\textbf{Observations} & \\textbf{Height Levels} & \\textbf{Mean Wind Speed (\$\\mathrm{m\\,s^{-1}}\$)} & \\textbf{Median Richardson No.} \\\\ \n")
     write(io, "    \\midrule\n")
     for r in eachrow(overview)
-        wind = isfinite(r.mean_wind_speed) ? string(round(r.mean_wind_speed; digits = 3)) : "NA"
-        ri = isfinite(r.mean_ri) ? string(round(r.mean_ri; digits = 3)) : "NA"
+        wind = isfinite(r.mean_wind_speed) ? string(round(r.mean_wind_speed; digits=3)) : "NA"
+        ri = isfinite(r.mean_ri) ? string(round(r.mean_ri; digits=3)) : "NA"
         write(io, "    \\texttt{$(r.campaign)} & $(r.observations) & $(r.height_levels) & $(wind) & $(ri) \\\\ \n")
     end
     write(io, "    \\bottomrule\n")
@@ -616,7 +665,7 @@ open(tex_path, "w") do io
     write(io, "\\begin{figure}[htbp]\n")
     write(io, "  \\centering\n")
     write(io, "  \\includegraphics[width=0.92\\linewidth]{campaign_exports/figures/$(basename(overview_fig))}\n")
-    write(io, "  \\caption{Comparative campaign overview for derived mean wind speed and mean stability metrics.}\n")
+    write(io, "  \\caption{Comparative campaign overview for derived mean wind speed and median stability metrics.}\n")
     write(io, "  \\label{fig:campaign-overview}\n")
     write(io, "\\end{figure}\n\n")
 

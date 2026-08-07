@@ -121,6 +121,17 @@ Discovered PDE closures are benchmarked against neutral baseline formulations us
     \input{pde_benchmark/tables/cross_campaign_best_models.tex}
 \end{table}
 
+\subsection{Leave-One-Site-Out (LOSO) Cross-Validation}
+
+To assess cross-campaign generalization, we perform Leave-One-Site-Out validation using campaign artifacts as observational inputs. Reported metrics summarize out-of-sample fit quality and a coefficient-consistency stability score across held-out sites.
+
+\begin{table}[H]
+    \centering
+    \caption{LOSO out-of-sample metrics by held-out site, with aggregate stability diagnostics.}
+    \label{tab:loso_summary}
+    \input{pde_benchmark/tables/loso_validation_summary.tex}
+\end{table}
+
 \subsection{CASES-99 Optimal Pareto Closure}
 
 The optimal discovered differential equation governing momentum profile evolution for CASES-99 is:
