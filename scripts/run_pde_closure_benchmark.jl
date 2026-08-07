@@ -18,10 +18,11 @@ const FIG_DIR = joinpath(OUTPUT_ROOT, "figures")
 const TABLE_DIR = joinpath(OUTPUT_ROOT, "tables")
 
 const N_MODES_BENCHMARK = 12
-const RELTOL_BENCHMARK = 1e-4
-const ABSTOL_BENCHMARK = 1e-6
+const RELTOL_BENCHMARK = 1e-6
+const ABSTOL_BENCHMARK = 1e-8
 const SAVEAT_BENCHMARK = 300.0
 const DT_INITIAL_BENCHMARK = 1.0
+const MAXITERS_BENCHMARK = 10^7
 
 mkpath(FIG_DIR)
 mkpath(TABLE_DIR)
@@ -94,6 +95,61 @@ function write_text(path::String, content::String)
     return path
 end
 
+function escape_tex(str::AbstractString)
+    escaped = String(str)
+    escaped = replace(escaped, "\\" => "\\textbackslash{}")
+    escaped = replace(escaped, "_" => "\\_")
+    escaped = replace(escaped, "%" => "\\%")
+    escaped = replace(escaped, "&" => "\\&")
+    escaped = replace(escaped, "#" => "\\#")
+    escaped = replace(escaped, "{" => "\\{")
+    escaped = replace(escaped, "}" => "\\}")
+    escaped = replace(escaped, string('$') => string('\\', '$'))
+    return escaped
+end
+
+function export_cross_campaign_summary_tex(
+    filepath::String,
+    summary_df::DataFrame,
+    best_models::Dict{Symbol, DiscoveredModel{Float64}},
+    r2_by_campaign::Dict{Symbol, Float64},
+    residual_by_campaign::Dict{Symbol, Float64},
+)
+    open(filepath, "w") do io
+        println(io, "\\begin{tabular}{l r r r}")
+        println(io, "\\toprule")
+        dollar_tex = string('\\', '$')
+        println(io, "Site & Active terms & " * dollar_tex * "R^{2}" * dollar_tex * " & Residual norm \\\\")
+        println(io, "\\midrule")
+
+        for row in eachrow(summary_df)
+            camp_sym = campaign_symbol(String(row.campaign))
+            site_clean = escape_tex(string(camp_sym))
+            k = get(best_models, camp_sym, nothing)
+            active_terms = k === nothing ? 0 : k.sparsity_level
+            r2_val = get(r2_by_campaign, camp_sym, NaN)
+            resid_val = get(residual_by_campaign, camp_sym, NaN)
+
+            if isfinite(r2_val)
+                r2_str = string(round(r2_val; digits = 4))
+            else
+                r2_str = "NA"
+            end
+            if isfinite(resid_val)
+                resid_str = string(round(resid_val; digits = 5))
+            else
+                resid_str = "NA"
+            end
+
+            println(io, "\\texttt{$(site_clean)} & $(active_terms) & $(r2_str) & $(resid_str) \\\\")
+        end
+
+        println(io, "\\bottomrule")
+        println(io, "\\end{tabular}")
+    end
+    return filepath
+end
+
 function campaign_symbol(campaign::String)
     return Symbol(replace(lowercase(campaign), "-" => "_"))
 end
@@ -120,27 +176,41 @@ function make_pareto_plot(
     y_label::String,
     out_path::String,
 )
-    p = scatter(
-        complexity,
-        score,
+    finite_idx = findall(isfinite, score)
+    p = plot(
         xlabel = "Model complexity (k)",
         ylabel = y_label,
         title = title_text,
+    )
+
+    if isempty(finite_idx)
+        annotate!(p, 0.5, 0.5, text("No finite candidate metrics", 10, :center))
+        savefig(p, out_path)
+        return out_path
+    end
+
+    scatter!(
+        p,
+        complexity[finite_idx],
+        score[finite_idx],
         markersize = 7,
         label = "Candidates",
     )
     if !isempty(pareto_idx)
+        pareto_finite = [i for i in pareto_idx if i in finite_idx]
+        if !isempty(pareto_finite)
         scatter!(
             p,
-            complexity[pareto_idx],
-            score[pareto_idx],
+            complexity[pareto_finite],
+            score[pareto_finite],
             markersize = 9,
             markerstrokewidth = 2,
             markercolor = :red,
             label = "Pareto front",
         )
+        end
     end
-    for i in eachindex(labels)
+    for i in finite_idx
         annotate!(p, complexity[i], score[i], text(labels[i], 8, :left))
     end
     savefig(p, out_path)
@@ -149,9 +219,9 @@ end
 
 function solve_with_fallback(pde_sys, closure, disc, tspan, u0)
     solver_chain = (
-        (name = "Rodas5P", alg = Rodas5P()),
-        (name = "RadauIIA5", alg = RadauIIA5()),
+        (name = "TRBDF2", alg = TRBDF2(autodiff = true)),
         (name = "FBDF", alg = FBDF()),
+        (name = "RadauIIA5", alg = RadauIIA5()),
     )
 
     for candidate in solver_chain
@@ -166,35 +236,21 @@ function solve_with_fallback(pde_sys, closure, disc, tspan, u0)
                 abstol = ABSTOL_BENCHMARK,
                 dt = DT_INITIAL_BENCHMARK,
                 dtmax = 120.0,
-                maxiters = 10^7,
+                maxiters = MAXITERS_BENCHMARK,
                 saveat = SAVEAT_BENCHMARK,
                 u0 = u0,
+                verbose = false,
             )
 
-            if string(sol.retcode) == "Success"
-                return sol, candidate.name
+            if SciMLBase.successful_retcode(sol)
+                return sol, candidate.name, true
             end
         catch
             # Continue through fallback chain when a solver is incompatible.
         end
     end
 
-    # Return the final attempt result if all candidates fail.
-    final = solve_scm(
-        pde_sys,
-        closure,
-        disc,
-        tspan;
-        solver = Rodas5P(),
-        reltol = RELTOL_BENCHMARK,
-        abstol = ABSTOL_BENCHMARK,
-        dt = DT_INITIAL_BENCHMARK,
-        dtmax = 120.0,
-        maxiters = 10^7,
-        saveat = SAVEAT_BENCHMARK,
-        u0 = u0,
-    )
-    return final, "Rodas5P(final)"
+    return nothing, "failed", false
 end
 
 function run_case(campaign::String, payload)
@@ -221,21 +277,21 @@ function run_case(campaign::String, payload)
     pde_phys = build_pde_system(closure; z_top = 100.0, t_end = tspan[2], coriolis = 0.0, v_geostrophic = 0.0, radiation = 0.0)
     pde_base = build_pde_system(baseline; z_top = 100.0, t_end = tspan[2], coriolis = 0.0, v_geostrophic = 0.0, radiation = 0.0)
 
-    sol_phys, solver_phys = solve_with_fallback(pde_phys, closure, disc, tspan, u0)
-    sol_base, solver_base = solve_with_fallback(pde_base, baseline, disc, tspan, u0)
+    sol_phys, solver_phys, ok_phys = solve_with_fallback(pde_phys, closure, disc, tspan, u0)
+    sol_base, solver_base, ok_base = solve_with_fallback(pde_base, baseline, disc, tspan, u0)
 
-    final_phys = Float64.(sol_phys.u[end])
-    final_base = Float64.(sol_base.u[end])
+    final_phys = ok_phys ? Float64.(sol_phys.u[end]) : copy(u0)
+    final_base = ok_base ? Float64.(sol_base.u[end]) : copy(u0)
 
     z_grid = collect(range(2.0, 100.0; length = disc.n_modes))
     K_buffer = zeros(Float64, disc.n_modes)
     evaluate_diffusivity_profile!(K_buffer, closure, z_grid)
 
-    r2_phys = r2_score(final_phys, u0)
-    r2_base = r2_score(final_base, u0)
+    r2_phys = ok_phys ? r2_score(final_phys, u0) : -Inf
+    r2_base = ok_base ? r2_score(final_base, u0) : -Inf
 
-    baseline_model = model_from_profile(:u, mean(final_base), 0.0, rmse(final_base, u0))
-    physical_model = model_from_profile(:u, mean(final_phys), maximum(K_buffer) / 1000.0, rmse(final_phys, u0))
+    baseline_model = model_from_profile(:u, mean(final_base), 0.0, ok_base ? rmse(final_base, u0) : Inf)
+    physical_model = model_from_profile(:u, mean(final_phys), maximum(K_buffer) / 1000.0, ok_phys ? rmse(final_phys, u0) : Inf)
 
     candidates = [baseline_model, physical_model]
     closure_labels = ["baseline", "physical"]
@@ -249,22 +305,27 @@ function run_case(campaign::String, payload)
     pareto_rss = compute_pareto_front(candidates; objective = :rss)
     pareto_r2 = compute_pareto_front(candidates; objective = :r2, r2_values = r2_vals)
 
-    best_idx = pareto_rss.indices[1]
+    best_idx = if !isempty(pareto_rss.indices)
+        pareto_rss.indices[1]
+    else
+        finite_idx = findall(isfinite, rss_vals)
+        isempty(finite_idx) ? 1 : finite_idx[argmin(rss_vals[finite_idx])]
+    end
     best_model = candidates[best_idx]
     best_label = closure_labels[best_idx]
 
     return (
         campaign = campaign,
         mean_wind = mean_wind,
-        rmse_physical = rmse(final_phys, u0),
-        rmse_baseline = rmse(final_base, u0),
+        rmse_physical = ok_phys ? rmse(final_phys, u0) : Inf,
+        rmse_baseline = ok_base ? rmse(final_base, u0) : Inf,
         r2_physical = r2_phys,
         r2_baseline = r2_base,
         max_km = maximum(K_buffer),
         solver_physical = solver_phys,
         solver_baseline = solver_base,
-        phys_retcode = string(sol_phys.retcode),
-        baseline_retcode = string(sol_base.retcode),
+        phys_retcode = ok_phys ? string(sol_phys.retcode) : "solve_failed",
+        baseline_retcode = ok_base ? string(sol_base.retcode) : "solve_failed",
         final_phys = final_phys,
         final_base = final_base,
         observed = u0,
@@ -375,15 +436,14 @@ summary_df = DataFrame(rows)
 summary_path = joinpath(TABLE_DIR, "pde_benchmark_summary.csv")
 CSV.write(summary_path, summary_df)
 
-site_table_tex = latex_site_summary_table(
-    best_models_by_campaign;
-    r2_by_site = r2_best_by_campaign,
-    residual_by_site = residual_best_by_campaign,
-)
-# latex_site_summary_table may emit \mathrm{...} in plain table cells; convert to text mode.
-site_table_tex = replace(site_table_tex, r"\\mathrm\{([^}]*)\}" => s"\\texttt{\1}")
 site_table_path = joinpath(TABLE_DIR, "cross_campaign_best_models.tex")
-write_text(site_table_path, site_table_tex)
+export_cross_campaign_summary_tex(
+    site_table_path,
+    summary_df,
+    best_models_by_campaign,
+    r2_best_by_campaign,
+    residual_best_by_campaign,
+)
 
 summary_data = Dict(
     "generated_at" => string(Dates.now()),

@@ -69,8 +69,28 @@ pde-benchmark:
 report:
 	@mkdir -p reports/generated
 	cp templates/report.tex.mustache reports/generated/report.tex
-	cd reports/generated && pdflatex -interaction=nonstopmode report.tex > /dev/null 2>&1
-	cd reports/generated && pdflatex -interaction=nonstopmode report.tex > /dev/null 2>&1
+	@if command -v latexmk >/dev/null 2>&1; then \
+		cd reports/generated && latexmk -pdf -interaction=nonstopmode report.tex >/dev/null 2>&1 || { \
+			if [ -f report.pdf ]; then \
+				echo "latexmk exited non-zero but report.pdf was produced; continuing"; \
+			else \
+				echo "latexmk failed; see reports/generated/report.log"; \
+				tail -n 80 report.log; \
+				exit 1; \
+			fi; \
+		}; \
+	else \
+		cd reports/generated && pdflatex -interaction=nonstopmode report.tex >/dev/null 2>&1 || { \
+			echo "pdflatex pass 1 failed; see reports/generated/report.log"; \
+			tail -n 80 report.log; \
+			exit 1; \
+		}; \
+		cd reports/generated && pdflatex -interaction=nonstopmode report.tex >/dev/null 2>&1 || { \
+			echo "pdflatex pass 2 failed; see reports/generated/report.log"; \
+			tail -n 80 report.log; \
+			exit 1; \
+		}; \
+	fi
 	@echo "PDF build complete: reports/generated/report.pdf"
 
 ## clean: Remove generated output artifacts, figures, and temporary files

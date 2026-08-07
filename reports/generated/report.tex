@@ -39,11 +39,16 @@ This report synthesizes field campaign diagnostics (CASES-99, FLOSS, BLLAST, and
 
 Field campaign observations were ingested to derive Obukhov length $L$, stability parameter $\zeta = z/L$, non-dimensional wind shear $\phi_m(\zeta)$, and gradient Richardson numbers $Ri_g$.
 
-\input{campaign_exports/tables/campaign_summary.tex}
+\begin{table}[H]
+    \centering
+    \caption{Field campaign dataset diagnostics, height levels, and stability parameter ranges.}
+    \label{tab:campaign_summary}
+    \input{campaign_exports/tables/campaign_summary.tex}
+\end{table}
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.95\linewidth]{campaign_exports/figures/campaign_overview.png}
+    \includegraphics[width=0.95\linewidth]{campaign_exports/figures/campaign_overview}
     \caption{Comparative campaign overview displaying mean wind speed and stability metric profiles across all field sites.}
     \label{fig:campaign_overview}
 \end{figure}
@@ -56,13 +61,13 @@ Bayesian parameter sampling propagates uncertainty through Similarity Theory for
     \centering
     \begin{subfigure}[b]{0.48\textwidth}
         \centering
-        \includegraphics[width=\textwidth]{campaign_exports/figures/cases_99_km_uncertainty.png}
+        \includegraphics[width=\textwidth]{campaign_exports/figures/cases_99_km_uncertainty}
         \caption{CASES-99 $K_m(z)$ 95\% Ribbon}
     \end{subfigure}
     \hfill
     \begin{subfigure}[b]{0.48\textwidth}
         \centering
-        \includegraphics[width=\textwidth]{campaign_exports/figures/sheba_km_uncertainty.png}
+        \includegraphics[width=\textwidth]{campaign_exports/figures/sheba_km_uncertainty}
         \caption{SHEBA $K_m(z)$ 95\% Ribbon}
     \end{subfigure}
 
@@ -70,13 +75,13 @@ Bayesian parameter sampling propagates uncertainty through Similarity Theory for
 
     \begin{subfigure}[b]{0.48\textwidth}
         \centering
-        \includegraphics[width=\textwidth]{campaign_exports/figures/floss_km_uncertainty.png}
+        \includegraphics[width=\textwidth]{campaign_exports/figures/floss_km_uncertainty}
         \caption{FLOSS $K_m(z)$ 95\% Ribbon}
     \end{subfigure}
     \hfill
     \begin{subfigure}[b]{0.48\textwidth}
         \centering
-        \includegraphics[width=\textwidth]{campaign_exports/figures/bllast_km_uncertainty.png}
+        \includegraphics[width=\textwidth]{campaign_exports/figures/bllast_km_uncertainty}
         \caption{BLLAST $K_m(z)$ 95\% Ribbon}
     \end{subfigure}
     \caption{Vertical eddy diffusivity $K_m(z)$ profiles with median predictions and 95\% posterior credibility intervals across target field campaigns.}
@@ -89,13 +94,13 @@ Bayesian parameter sampling propagates uncertainty through Similarity Theory for
     \centering
     \begin{subfigure}[b]{0.48\textwidth}
         \centering
-        \includegraphics[width=\textwidth]{campaign_exports/figures/cases_99_ri_heatmap.png}
+        \includegraphics[width=\textwidth]{campaign_exports/figures/cases_99_ri_heatmap}
         \caption{CASES-99 $Ri_g(z,t)$ Heatmap}
     \end{subfigure}
     \hfill
     \begin{subfigure}[b]{0.48\textwidth}
         \centering
-        \includegraphics[width=\textwidth]{campaign_exports/figures/floss_ri_heatmap.png}
+        \includegraphics[width=\textwidth]{campaign_exports/figures/floss_ri_heatmap}
         \caption{FLOSS $Ri_g(z,t)$ Heatmap}
     \end{subfigure}
     \caption{Gradient Richardson number time-height cross sections showing dynamic stability transitions.}
@@ -109,7 +114,12 @@ Discovered PDE closures are benchmarked against neutral baseline formulations us
 
 \subsection{Cross-Campaign Discovered Model Summary}
 
-\input{pde_benchmark/tables/cross_campaign_best_models.tex}
+\begin{table}[H]
+    \centering
+    \caption{Cross-campaign Pareto-optimal discovered model performance metrics.}
+    \label{tab:cross_campaign_models}
+    \input{pde_benchmark/tables/cross_campaign_best_models.tex}
+\end{table}
 
 \subsection{CASES-99 Optimal Pareto Closure}
 
@@ -117,19 +127,24 @@ The optimal discovered differential equation governing momentum profile evolutio
 
 \input{pde_benchmark/tables/cases_99_best_equation.tex}
 
-\input{pde_benchmark/tables/cases_99_best_terms.tex}
+\begin{table}[H]
+    \centering
+    \caption{Discovered library terms and estimated coefficients for CASES-99.}
+    \label{tab:cases99_terms}
+    \input{pde_benchmark/tables/cases_99_best_terms.tex}
+\end{table}
 
 \begin{figure}[H]
     \centering
     \begin{subfigure}[b]{0.48\textwidth}
         \centering
-        \includegraphics[width=\textwidth]{pde_benchmark/figures/cases_99_pareto_rss.png}
+        \includegraphics[width=\textwidth]{pde_benchmark/figures/cases_99_pareto_rss}
         \caption{CASES-99 Complexity vs RSS}
     \end{subfigure}
     \hfill
     \begin{subfigure}[b]{0.48\textwidth}
         \centering
-        \includegraphics[width=\textwidth]{pde_benchmark/figures/cases_99_pareto_r2.png}
+        \includegraphics[width=\textwidth]{pde_benchmark/figures/cases_99_pareto_r2}
         \caption{CASES-99 Complexity vs $R^2$}
     \end{subfigure}
     \caption{Pareto trade-off fronts between closure sparsity ($k$) and residual metrics for CASES-99.}
@@ -142,19 +157,24 @@ The optimal discovered differential equation for SHEBA is:
 
 \input{pde_benchmark/tables/sheba_best_equation.tex}
 
-\input{pde_benchmark/tables/sheba_best_terms.tex}
+\begin{table}[H]
+    \centering
+    \caption{Discovered library terms and estimated coefficients for SHEBA.}
+    \label{tab:sheba_terms}
+    \input{pde_benchmark/tables/sheba_best_terms.tex}
+\end{table}
 
 \begin{figure}[H]
     \centering
     \begin{subfigure}[b]{0.48\textwidth}
         \centering
-        \includegraphics[width=\textwidth]{pde_benchmark/figures/sheba_pareto_rss.png}
+        \includegraphics[width=\textwidth]{pde_benchmark/figures/sheba_pareto_rss}
         \caption{SHEBA Complexity vs RSS}
     \end{subfigure}
     \hfill
     \begin{subfigure}[b]{0.48\textwidth}
         \centering
-        \includegraphics[width=\textwidth]{pde_benchmark/figures/sheba_pareto_r2.png}
+        \includegraphics[width=\textwidth]{pde_benchmark/figures/sheba_pareto_r2}
         \caption{SHEBA Complexity vs $R^2$}
     \end{subfigure}
     \caption{Pareto trade-off fronts between closure sparsity ($k$) and residual metrics for SHEBA.}
@@ -165,7 +185,7 @@ The optimal discovered differential equation for SHEBA is:
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.90\linewidth]{pde_benchmark/figures/pde_profile_comparison.png}
+    \includegraphics[width=0.90\linewidth]{pde_benchmark/figures/pde_profile_comparison}
     \caption{End-state modal profile amplitudes comparing observed mean initial states, neutral baseline predictions, and physical similarity closures.}
     \label{fig:pde_profile_comp}
 \end{figure}

@@ -40,10 +40,12 @@ using .Calibration: AbstractCalibrationAlgorithm, BayesianMCMC, MaximumLikelihoo
 using .Calibration: CalibrationResult, calibrate, dispatch_calibrate
 using .Calibration: CalibrationConfig, HierarchicalCalibrationResult, calibrate_hierarchical
 using .Calibration: evaluate_profile_uncertainty
+using .Geometry: FoldedSingularity, classify_folded_singularity, detect_canard_trajectories
 using .ExportUtilities: export_to_csv, export_to_json, export_to_netcdf
 
 export ManifoldState, FoldConstraint, fold_residual, fold_transversality
 export Geometry
+export FoldedSingularity, classify_folded_singularity, detect_canard_trajectories
 
 export AbstractClosure, AbstractAtmosphericClosure, WSINDyClosure, MOSTClosure, PhysicalSimilarityClosure
 export eddy_momentum, eddy_heat, surface_flux
@@ -66,6 +68,16 @@ export BasisOperator, OperatorTerm, DiscoveredModel, to_mtk_expression, get_feat
 export to_latex, latex_term_table, latex_site_summary_table
 export aic, bic, model_aic, model_bic, compute_pareto_front, kfold_cv_residual
 export FeatureLibrary, build_feature_library
+export SyntheticBenchmarkData
+export manufactured_linear_solution, manufactured_nonlinear_solution
+export linear_diffusivity, nonlinear_diffusivity
+export generate_manufactured_field
+export additive_gaussian_noise, ar1_temporal_noise, multiplicative_sensor_noise, apply_missing_data
+export coefficient_l2_error, precision_recall, structural_hamming_distance, false_discovery_rate, equation_sparsity, snr_db, evaluate_recovery_metrics
+export IdentifiabilityReport, compute_gram_matrix, compute_mutual_coherence, compute_condition_number, compute_vif, compute_parameter_covariance, analyze_identifiability, prune_by_mutual_coherence
+export CampaignData, LOSOSplit, LOSOResult, LOSOSummary
+export create_loso_splits, evaluate_out_of_sample, run_loso_cross_validation
+export load_campaign_data, load_all_campaigns, run_artifact_loso
 export AbstractPhysicalConstraint, PositivityConstraint, MonotonicityConstraint, EnergyConstraint
 export PhysicalConstraintMatrix, assemble_constraint_matrix
 export AbstractTestFunctionFamily, GegenbauerFamily, BSplineFamily

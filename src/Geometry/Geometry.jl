@@ -19,7 +19,7 @@ export AbstractInvariantSet
 export fold_indicator, track_fold_curve
 export desingularized_vector_field, slow_flow_vector
 export find_desingularized_singular_points
-export FoldedSingularity, SingularType, CanardSegment, classify_folded_singularity, classify_singular_type, detect_folded_singularity, build_canard_segment
+export FoldedSingularity, classify_folded_singularity, detect_canard_trajectories
 export HyperbolicityReport, fenichel_metrics, hyperbolicity_profile
 export JacobianModel, JacobianCache, evaluate_jacobian, evaluate_det, evaluate_adjugate
 export compute_fast_jacobian, compute_adjugate, evaluate_tangent_space
