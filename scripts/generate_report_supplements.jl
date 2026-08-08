@@ -1,3 +1,4 @@
+# scripts/generate_report_supplements.jl
 using CSV
 using DataFrames
 using JSON3

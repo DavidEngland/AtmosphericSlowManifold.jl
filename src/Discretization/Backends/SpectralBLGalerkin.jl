@@ -330,6 +330,40 @@ function _gegenbauerC(n::Int, lambda::Float64, x::Float64)
     return c_nm1
 end
 
+function _modal_basis_at_z(n_modes::Int, lambda::Float64, z::Float64, H::Float64)
+    0.0 <= z <= H || throw(ArgumentError("Basis evaluation height must lie in [0, H]."))
+    x = 2.0 * z / H - 1.0
+    return [_gegenbauerC(n - 1, lambda, x) for n in 1:n_modes]
+end
+
+function _add_surface_heat_forcing!(
+    du::AbstractVector,
+    u::AbstractVector,
+    forcing::SurfaceForcing,
+    phi_z1::Vector{Float64},
+    transfer_velocity::Float64,
+    t::Real,
+)
+    surface_temperature = interp_forcing(forcing, :Ts, t)
+    reference_temperature = dot(phi_z1, u)
+    heat_flux = transfer_velocity * (surface_temperature - reference_temperature)
+    @inbounds for mode in eachindex(phi_z1)
+        du[mode] += phi_z1[mode] * heat_flux
+    end
+    return du
+end
+
+function _add_surface_heat_jacobian!(
+    jacobian::AbstractMatrix,
+    phi_z1::Vector{Float64},
+    transfer_velocity::Float64,
+)
+    @inbounds for row in eachindex(phi_z1), column in eachindex(phi_z1)
+        jacobian[row, column] -= transfer_velocity * phi_z1[row] * phi_z1[column]
+    end
+    return jacobian
+end
+
 function _x_to_z(x::Float64, H::Float64)
     return 0.5 * H * (x + 1.0)
 end
@@ -482,6 +516,13 @@ function _stiffness_matrix(
     return K
 end
 
+"""
+Solve the single-field spectral system.
+
+When `surface_forcing` is provided, the modal state is interpreted as potential
+temperature in Kelvin. `bulk_transfer_coeff` and `reference_wind_speed` define
+the bulk transfer velocity, and `z1` is the reference measurement height.
+"""
 function dispatch_solve(
     disc::SpectralBLGalerkin,
     pde_sys::PDESystem,
@@ -492,10 +533,20 @@ function dispatch_solve(
     reltol::Real=1e-6,
     abstol::Real=1e-8,
     maxiters::Int=1_000_000,
+    surface_forcing::Union{Nothing,SurfaceForcing}=nothing,
+    bulk_transfer_coeff::Float64=1.5e-3,
+    reference_wind_speed::Float64=5.0,
+    z1::Union{Nothing,Float64}=nothing,
     kwargs...
 )
     workspace = build_boundary_layer_workspace(disc, closure)
     update_diffusivity_buffers!(workspace)
+
+    bulk_transfer_coeff >= 0.0 || throw(ArgumentError("bulk_transfer_coeff must be nonnegative."))
+    reference_wind_speed >= 0.0 || throw(ArgumentError("reference_wind_speed must be nonnegative."))
+    z1_actual = z1 === nothing ? first(workspace.z_grid) : z1
+    phi_z1 = _modal_basis_at_z(disc.n_modes, disc.lambda, z1_actual, disc.H)
+    transfer_velocity = bulk_transfer_coeff * reference_wind_speed
 
     M = _mass_matrix(disc.n_modes, disc.lambda)
     K = _stiffness_matrix(disc.n_modes, disc.lambda, disc.H, workspace.K_m_buffer, workspace.z_grid)
@@ -522,6 +573,9 @@ function dispatch_solve(
         nl=zeros(Float64, disc.n_modes),
         dnl=zeros(Float64, disc.n_modes, disc.n_modes),
         M_dnl=zeros(Float64, disc.n_modes, disc.n_modes),
+        surface_forcing=surface_forcing,
+        phi_z1=phi_z1,
+        transfer_velocity=transfer_velocity,
     )
 
     function rhs_mass!(du, u, p, t)
@@ -531,29 +585,36 @@ function dispatch_solve(
             du[i] = -du[i]
         end
 
-        if p.tensors === nothing
-            return du
-        end
-
-        fill!(p.nl, 0.0)
-        @inbounds for k in 1:p.n
-            adv = 0.0
-            diff = 0.0
-            for i in 1:p.n
-                ui = u[i]
-                for j in 1:p.n
-                    uij = ui * u[j]
-                    adv += p.tensors.advection[k, i, j] * uij
-                    diff += p.tensors.diffusion_flux[k, i, j] * uij
+        if p.tensors !== nothing
+            fill!(p.nl, 0.0)
+            @inbounds for k in 1:p.n
+                adv = 0.0
+                diff = 0.0
+                for i in 1:p.n
+                    ui = u[i]
+                    for j in 1:p.n
+                        uij = ui * u[j]
+                        adv += p.tensors.advection[k, i, j] * uij
+                        diff += p.tensors.diffusion_flux[k, i, j] * uij
+                    end
                 end
+                p.nl[k] = -(p.adv_scale * adv + p.diff_scale * diff)
             end
-            p.nl[k] = -(p.adv_scale * adv + p.diff_scale * diff)
+
+            mul!(p.nl, p.M, p.nl)
+            @inbounds for i in 1:p.n
+                du[i] += p.nl[i]
+            end
         end
 
-        mul!(p.nl, p.M, p.nl)
-        @inbounds for i in 1:p.n
-            du[i] += p.nl[i]
-        end
+        p.surface_forcing === nothing || _add_surface_heat_forcing!(
+            du,
+            u,
+            p.surface_forcing,
+            p.phi_z1,
+            p.transfer_velocity,
+            t,
+        )
         return du
     end
 
@@ -565,31 +626,35 @@ function dispatch_solve(
             end
         end
 
-        if p.tensors === nothing
-            return J
-        end
-
-        fill!(p.dnl, 0.0)
-        @inbounds for k in 1:p.n
-            for l in 1:p.n
-                d_adv = 0.0
-                d_diff = 0.0
-                for j in 1:p.n
-                    d_adv += p.tensors.advection[k, l, j] * u[j]
-                    d_adv += p.tensors.advection[k, j, l] * u[j]
-                    d_diff += p.tensors.diffusion_flux[k, l, j] * u[j]
-                    d_diff += p.tensors.diffusion_flux[k, j, l] * u[j]
+        if p.tensors !== nothing
+            fill!(p.dnl, 0.0)
+            @inbounds for k in 1:p.n
+                for l in 1:p.n
+                    d_adv = 0.0
+                    d_diff = 0.0
+                    for j in 1:p.n
+                        d_adv += p.tensors.advection[k, l, j] * u[j]
+                        d_adv += p.tensors.advection[k, j, l] * u[j]
+                        d_diff += p.tensors.diffusion_flux[k, l, j] * u[j]
+                        d_diff += p.tensors.diffusion_flux[k, j, l] * u[j]
+                    end
+                    p.dnl[k, l] = -(p.adv_scale * d_adv + p.diff_scale * d_diff)
                 end
-                p.dnl[k, l] = -(p.adv_scale * d_adv + p.diff_scale * d_diff)
+            end
+
+            mul!(p.M_dnl, p.M, p.dnl)
+            @inbounds for i in 1:p.n
+                for j in 1:p.n
+                    J[i, j] += p.M_dnl[i, j]
+                end
             end
         end
 
-        mul!(p.M_dnl, p.M, p.dnl)
-        @inbounds for i in 1:p.n
-            for j in 1:p.n
-                J[i, j] += p.M_dnl[i, j]
-            end
-        end
+        p.surface_forcing === nothing || _add_surface_heat_jacobian!(
+            J,
+            p.phi_z1,
+            p.transfer_velocity,
+        )
         return J
     end
 

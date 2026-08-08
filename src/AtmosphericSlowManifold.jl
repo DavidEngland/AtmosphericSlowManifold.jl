@@ -9,6 +9,9 @@ using DomainSets
 using LinearAlgebra
 using JuMP
 using JSON3
+using CSV
+using DataFrames
+using Dates
 
 include("Manifold/ManifoldState.jl")
 include("Manifold/GSPTDiagnostics.jl")
@@ -23,6 +26,7 @@ include("Closures/PhysicalSimilarityClosure.jl")
 include("Observation/DataIngestion.jl")
 include("Observation/SpectralBLTransform.jl")
 
+include("Forcing/SurfaceForcing.jl")
 include("System/SurfaceBoundary.jl")
 include("System/PrognosticPDE.jl")
 include("Diagnostics/Diagnostics.jl")
@@ -56,6 +60,7 @@ export AbstractDiscretization, MethodOfLinesFD, SpectralBLGalerkin
 export generate_stretched_grid, solve_scm
 export SpectralNonlinearTensors, precompute_nonlinear_tensors
 export ModalBudgetDiagnostic, evaluate_modal_budget
+export SurfaceForcing, load_surface_forcing, interp_forcing
 
 export ObservationTable, read_tower_csv, read_tower_netcdf, read_observation_data, project_to_gegenbauer
 export resolve_sibling_data_dir, find_data_files
