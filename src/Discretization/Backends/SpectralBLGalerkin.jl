@@ -10,9 +10,9 @@ struct SpectralBLGalerkin <: AbstractDiscretization
 end
 
 struct SpectralNonlinearTensors
-    triple::Array{Float64, 3}
-    advection::Array{Float64, 3}
-    diffusion_flux::Array{Float64, 3}
+    triple::Array{Float64,3}
+    advection::Array{Float64,3}
+    diffusion_flux::Array{Float64,3}
 end
 
 """
@@ -28,7 +28,7 @@ end
 """
 Pre-allocated workspace for closure-driven diffusivity coupling in spectral space.
 """
-struct BoundaryLayerWorkspace{T<:AbstractFloat, C<:AbstractClosure}
+struct BoundaryLayerWorkspace{T<:AbstractFloat,C<:AbstractClosure}
     closure::C
     z_grid::Vector{T}
     K_m_buffer::Vector{T}
@@ -36,10 +36,10 @@ struct BoundaryLayerWorkspace{T<:AbstractFloat, C<:AbstractClosure}
     dK_dz_buffer::Vector{T}
 end
 
-function build_boundary_layer_workspace(disc::SpectralBLGalerkin, closure::AbstractClosure; z_min::Float64 = 2.0)
-    z_grid = collect(range(z_min, disc.H; length = disc.n_modes))
+function build_boundary_layer_workspace(disc::SpectralBLGalerkin, closure::AbstractClosure; z_min::Float64=2.0)
+    z_grid = collect(range(z_min, disc.H; length=disc.n_modes))
     T = Float64
-    return BoundaryLayerWorkspace{T, typeof(closure)}(
+    return BoundaryLayerWorkspace{T,typeof(closure)}(
         closure,
         T.(z_grid),
         zeros(T, disc.n_modes),
@@ -60,10 +60,10 @@ function _fill_gradient!(dK_dz::Vector{Float64}, K::Vector{Float64}, z::Vector{F
 
     @inbounds begin
         dK_dz[1] = (K[2] - K[1]) / (z[2] - z[1])
-        for i in 2:(n - 1)
-            dK_dz[i] = (K[i + 1] - K[i - 1]) / (z[i + 1] - z[i - 1])
+        for i in 2:(n-1)
+            dK_dz[i] = (K[i+1] - K[i-1]) / (z[i+1] - z[i-1])
         end
-        dK_dz[n] = (K[n] - K[n - 1]) / (z[n] - z[n - 1])
+        dK_dz[n] = (K[n] - K[n-1]) / (z[n] - z[n-1])
     end
     return dK_dz
 end
@@ -92,11 +92,28 @@ end
     return acc / n
 end
 
+@inline function _interp1d(x_target::Float64, x_grid::Vector{Float64}, y_grid::Vector{Float64})
+    n = length(x_grid)
+    n == 0 && return 0.0
+    n == 1 && return y_grid[1]
+    if x_target <= x_grid[1]
+        return y_grid[1]
+    elseif x_target >= x_grid[end]
+        return y_grid[end]
+    end
+    idx = searchsortedlast(x_grid, x_target)
+    idx = clamp(idx, 1, n - 1)
+    x0, x1 = x_grid[idx], x_grid[idx+1]
+    y0, y1 = y_grid[idx], y_grid[idx+1]
+    t = (x_target - x0) / (x1 - x0)
+    return y0 + t * (y1 - y0)
+end
+
 function spectral_rhs!(
     du::Vector{Float64},
     u::Vector{Float64},
     L::Matrix{Float64},
-    tensors::Union{Nothing, SpectralNonlinearTensors},
+    tensors::Union{Nothing,SpectralNonlinearTensors},
     workspace::BoundaryLayerWorkspace{Float64},
     disc::SpectralBLGalerkin,
     adv_scale::Float64,
@@ -126,13 +143,13 @@ end
 
 function SpectralBLGalerkin(
     ;
-    n_modes::Int = 12,
-    lambda::Float64 = 0.75,
-    H::Float64 = 3000.0,
-    enable_nonlinear::Bool = true,
-    nonlinear_scale::Float64 = 1.0,
-    advection_response_scale::Float64 = 1.0,
-    diffusivity_response_scale::Float64 = 1.0,
+    n_modes::Int=12,
+    lambda::Float64=0.75,
+    H::Float64=3000.0,
+    enable_nonlinear::Bool=true,
+    nonlinear_scale::Float64=1.0,
+    advection_response_scale::Float64=1.0,
+    diffusivity_response_scale::Float64=1.0,
 )
     return SpectralBLGalerkin(
         n_modes,
@@ -263,9 +280,13 @@ function _spectral_nonlinear_rhs(
            _spectral_nonlinear_diffusion_rhs(tensors, a, diff_scale)
 end
 
-function _linear_modal_operator(disc::SpectralBLGalerkin)
+function _linear_modal_operator(
+    disc::SpectralBLGalerkin,
+    K_m_profile::Union{Nothing,Vector{Float64}}=nothing,
+    z_grid::Union{Nothing,Vector{Float64}}=nothing,
+)
     M = _mass_matrix(disc.n_modes, disc.lambda)
-    K = _stiffness_matrix(disc.n_modes, disc.lambda, disc.H)
+    K = _stiffness_matrix(disc.n_modes, disc.lambda, disc.H, K_m_profile, z_grid)
     return -(M \ K)
 end
 
@@ -279,10 +300,11 @@ function evaluate_modal_budget(
     K_hat::Vector{Float64},
     disc::SpectralBLGalerkin,
     tensors::SpectralNonlinearTensors,
+    z_grid::Union{Nothing,Vector{Float64}}=nothing,
 )
     length(u_hat) == disc.n_modes || throw(ArgumentError("u_hat length must match disc.n_modes."))
 
-    Lop = _linear_modal_operator(disc)
+    Lop = _linear_modal_operator(disc, K_hat, z_grid)
     f_lin = _spectral_linear_rhs(Lop, u_hat)
     f_adv = _spectral_nonlinear_advection_rhs(tensors, u_hat, 1.0)
     f_diff = _spectral_nonlinear_diffusion_rhs(tensors, u_hat, K_hat)
@@ -313,7 +335,7 @@ function _x_to_z(x::Float64, H::Float64)
 end
 
 function _quad_nodes_weights(n::Int)
-    xs = range(-1.0, 1.0; length = n)
+    xs = range(-1.0, 1.0; length=n)
     dx = step(xs)
     ws = fill(dx, n)
     ws[1] *= 0.5
@@ -325,7 +347,7 @@ function _gegenbauer_weight(x::Float64, lambda::Float64)
     return max(0.0, (1.0 - x^2)^(lambda - 0.5))
 end
 
-function _reference_derivative(n::Int, lambda::Float64, x::Float64; eps::Float64 = 1e-6)
+function _reference_derivative(n::Int, lambda::Float64, x::Float64; eps::Float64=1e-6)
     xp = min(1.0, x + eps)
     xm = max(-1.0, x - eps)
     return (_gegenbauerC(n, lambda, xp) - _gegenbauerC(n, lambda, xm)) / (2eps)
@@ -360,7 +382,7 @@ The tensors are defined over physical height with Gegenbauer weight:
  - advection[k,i,j] = <C_k, C_i*dC_j/dz>_lambda
  - diffusion_flux[k,i,j] = <-dC_k/dz, C_i*dC_j/dz>_lambda
 """
-function precompute_nonlinear_tensors(disc::SpectralBLGalerkin; n_quad::Int = 256)
+function precompute_nonlinear_tensors(disc::SpectralBLGalerkin; n_quad::Int=256)
     n_modes = disc.n_modes
     lambda = disc.lambda
     H = disc.H
@@ -397,7 +419,7 @@ function precompute_nonlinear_tensors(disc::SpectralBLGalerkin; n_quad::Int = 25
     return SpectralNonlinearTensors(triple, advection, diffusion_flux)
 end
 
-function _mass_matrix(n_modes::Int, lambda::Float64; n_quad::Int = 256)
+function _mass_matrix(n_modes::Int, lambda::Float64; n_quad::Int=256)
     x, w = _quad_nodes_weights(n_quad)
     M = zeros(n_modes, n_modes)
     for i in 1:n_modes
@@ -416,12 +438,28 @@ function _mass_matrix(n_modes::Int, lambda::Float64; n_quad::Int = 256)
     return M
 end
 
-function _stiffness_matrix(n_modes::Int, lambda::Float64, H::Float64; n_quad::Int = 256)
+function _stiffness_matrix(
+    n_modes::Int,
+    lambda::Float64,
+    H::Float64,
+    K_m_profile::Union{Nothing,Vector{Float64}}=nothing,
+    z_grid::Union{Nothing,Vector{Float64}}=nothing;
+    n_quad::Int=256,
+)
     x, w = _quad_nodes_weights(n_quad)
     K = zeros(n_modes, n_modes)
     dzdx = 0.5 * H
     inv_dzdx = 1.0 / dzdx
     eps = 1e-6
+
+    Km_quad = ones(length(x))
+    if K_m_profile !== nothing && z_grid !== nothing && !isempty(K_m_profile)
+        for q in eachindex(x)
+            zq = _x_to_z(x[q], H)
+            Km_quad[q] = max(0.0, _interp1d(zq, z_grid, K_m_profile))
+        end
+    end
+
     for i in 1:n_modes
         for j in 1:n_modes
             acc = 0.0
@@ -431,14 +469,12 @@ function _stiffness_matrix(n_modes::Int, lambda::Float64, H::Float64; n_quad::In
                 xq = x[q]
                 weight = (1.0 - xq^2)^(lambda - 0.5)
 
-                # Numerical derivative in reference space then chain-rule to z.
                 dCi_dx = (_gegenbauerC(ni, lambda, min(1.0, xq + eps)) - _gegenbauerC(ni, lambda, max(-1.0, xq - eps))) / (2 * eps)
                 dCj_dx = (_gegenbauerC(nj, lambda, min(1.0, xq + eps)) - _gegenbauerC(nj, lambda, max(-1.0, xq - eps))) / (2 * eps)
                 dCi_dz = dCi_dx * inv_dzdx
                 dCj_dz = dCj_dx * inv_dzdx
 
-                # Integrate in physical z-space: dz = dzdx * dx
-                acc += dCi_dz * dCj_dz * weight * dzdx * w[q]
+                acc += Km_quad[q] * dCi_dz * dCj_dz * weight * dzdx * w[q]
             end
             K[i, j] = acc
         end
@@ -450,19 +486,19 @@ function dispatch_solve(
     disc::SpectralBLGalerkin,
     pde_sys::PDESystem,
     closure::AbstractClosure,
-    tspan::Tuple{Float64, Float64};
-    solver = Rodas5P(autodiff = true),
-    u0 = nothing,
-    reltol::Real = 1e-6,
-    abstol::Real = 1e-8,
-    maxiters::Int = 1_000_000,
+    tspan::Tuple{Float64,Float64};
+    solver=Rodas5P(autodiff=true),
+    u0=nothing,
+    reltol::Real=1e-6,
+    abstol::Real=1e-8,
+    maxiters::Int=1_000_000,
     kwargs...
 )
     workspace = build_boundary_layer_workspace(disc, closure)
     update_diffusivity_buffers!(workspace)
 
     M = _mass_matrix(disc.n_modes, disc.lambda)
-    K = _stiffness_matrix(disc.n_modes, disc.lambda, disc.H)
+    K = _stiffness_matrix(disc.n_modes, disc.lambda, disc.H, workspace.K_m_buffer, workspace.z_grid)
     tensors = disc.enable_nonlinear ? precompute_nonlinear_tensors(disc) : nothing
     adv_scale = _mean_abs(workspace.K_m_buffer)
     diff_scale = _mean_abs(workspace.K_h_buffer)
@@ -477,15 +513,15 @@ function dispatch_solve(
     end
 
     p = (
-        M = M,
-        K = K,
-        tensors = tensors,
-        adv_scale = adv_scale,
-        diff_scale = diff_scale,
-        n = disc.n_modes,
-        nl = zeros(Float64, disc.n_modes),
-        dnl = zeros(Float64, disc.n_modes, disc.n_modes),
-        M_dnl = zeros(Float64, disc.n_modes, disc.n_modes),
+        M=M,
+        K=K,
+        tensors=tensors,
+        adv_scale=adv_scale,
+        diff_scale=diff_scale,
+        n=disc.n_modes,
+        nl=zeros(Float64, disc.n_modes),
+        dnl=zeros(Float64, disc.n_modes, disc.n_modes),
+        M_dnl=zeros(Float64, disc.n_modes, disc.n_modes),
     )
 
     function rhs_mass!(du, u, p, t)
@@ -557,7 +593,7 @@ function dispatch_solve(
         return J
     end
 
-    odef = ODEFunction(rhs_mass!; jac = jac_mass!, mass_matrix = M)
+    odef = ODEFunction(rhs_mass!; jac=jac_mass!, mass_matrix=M)
     prob = ODEProblem(odef, init, tspan, p)
-    return solve(prob, solver; reltol = reltol, abstol = abstol, maxiters = maxiters, kwargs...)
+    return solve(prob, solver; reltol=reltol, abstol=abstol, maxiters=maxiters, kwargs...)
 end

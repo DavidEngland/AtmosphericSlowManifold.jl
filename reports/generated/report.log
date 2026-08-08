@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.3.22)  8 AUG 2026 08:06
+This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.3.22)  8 AUG 2026 08:47
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -829,9 +829,9 @@ Package uniquecounter Info: New unique counter `rerunfilecheck' on input line 2
 )
 \Hy@SectionHShift=\skip69
 )
-Package hyperref Info: Option `colorlinks' set `true' on input line 46.
-LaTeX Font Info:    Trying to load font information for OT1+lmr on input line 6
-8.
+Package hyperref Info: Option `colorlinks' set `true' on input line 48.
+LaTeX Font Info:    Trying to load font information for OT1+lmr on input line 7
+0.
  (/usr/local/texlive/2026/texmf-dist/tex/latex/lm/ot1lmr.fd
 File: ot1lmr.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
 )
@@ -842,24 +842,24 @@ File: l3backend-pdftex.def 2025-10-09 L3 backend support: PDF output (pdfTeX)
 (./report.aux)
 \openout1 = `report.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 68.
-LaTeX Font Info:    ... okay on input line 68.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 68.
-LaTeX Font Info:    ... okay on input line 68.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 68.
-LaTeX Font Info:    ... okay on input line 68.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 68.
-LaTeX Font Info:    ... okay on input line 68.
-LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 68.
-LaTeX Font Info:    ... okay on input line 68.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 68.
-LaTeX Font Info:    ... okay on input line 68.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 68.
-LaTeX Font Info:    ... okay on input line 68.
-LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 68.
-LaTeX Font Info:    ... okay on input line 68.
-LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 68.
-LaTeX Font Info:    ... okay on input line 68.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 70.
+LaTeX Font Info:    ... okay on input line 70.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 70.
+LaTeX Font Info:    ... okay on input line 70.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 70.
+LaTeX Font Info:    ... okay on input line 70.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 70.
+LaTeX Font Info:    ... okay on input line 70.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 70.
+LaTeX Font Info:    ... okay on input line 70.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 70.
+LaTeX Font Info:    ... okay on input line 70.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 70.
+LaTeX Font Info:    ... okay on input line 70.
+LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 70.
+LaTeX Font Info:    ... okay on input line 70.
+LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 70.
+LaTeX Font Info:    ... okay on input line 70.
 
 *geometry* driver: auto-detecting
 *geometry* detected driver: pdftex
@@ -878,7 +878,7 @@ LaTeX Font Info:    ... okay on input line 68.
 * \oddsidemargin=0.0pt
 * \evensidemargin=0.0pt
 * \topmargin=-37.0pt
-* \headheight=12.0pt
+* \headheight=14.0pt
 * \headsep=25.0pt
 * \topskip=11.0pt
 * \footskip=30.0pt
@@ -895,13 +895,13 @@ LaTeX Font Info:    ... okay on input line 68.
 * \@reversemarginfalse
 * (1in=72.27pt=25.4mm, 1cm=28.453pt)
 
-LaTeX Info: Redefining \microtypecontext on input line 68.
-Package microtype Info: Applying patch `item' on input line 68.
-Package microtype Info: Applying patch `toc' on input line 68.
-Package microtype Info: Applying patch `eqnum' on input line 68.
-Package microtype Info: Applying patch `footnote' on input line 68.
-Package microtype Info: Applying patch `verbatim' on input line 68.
-LaTeX Info: Redefining \microtypesetup on input line 68.
+LaTeX Info: Redefining \microtypecontext on input line 70.
+Package microtype Info: Applying patch `item' on input line 70.
+Package microtype Info: Applying patch `toc' on input line 70.
+Package microtype Info: Applying patch `eqnum' on input line 70.
+Package microtype Info: Applying patch `footnote' on input line 70.
+Package microtype Info: Applying patch `verbatim' on input line 70.
+LaTeX Info: Redefining \microtypesetup on input line 70.
 Package microtype Info: Generating PDF output.
 Package microtype Info: Character protrusion enabled (level 2).
 Package microtype Info: Using default protrusion set `alltext'.
@@ -941,37 +941,37 @@ e
 Package caption Info: Begin \AtBeginDocument code.
 Package caption Info: hyperref package is loaded.
 Package caption Info: End \AtBeginDocument code.
-Package hyperref Info: Link coloring ON on input line 68.
+Package hyperref Info: Link coloring ON on input line 70.
 
 (./report.out) (./report.out)
 \@outlinefile=\write4
 \openout4 = `report.out'.
 
 LaTeX Font Info:    Trying to load font information for OML+lmm on input line 7
-1.
+3.
 
 (/usr/local/texlive/2026/texmf-dist/tex/latex/lm/omllmm.fd
 File: omllmm.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
 )
 LaTeX Font Info:    Trying to load font information for OMS+lmsy on input line 
-71.
+73.
 
 (/usr/local/texlive/2026/texmf-dist/tex/latex/lm/omslmsy.fd
 File: omslmsy.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
 )
 LaTeX Font Info:    Trying to load font information for OMX+lmex on input line 
-71.
+73.
 
 (/usr/local/texlive/2026/texmf-dist/tex/latex/lm/omxlmex.fd
 File: omxlmex.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
 )
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <12> on input line 71.
+(Font)              <12> on input line 73.
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <8> on input line 71.
+(Font)              <8> on input line 73.
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <6> on input line 71.
-LaTeX Font Info:    Trying to load font information for U+msa on input line 71.
+(Font)              <6> on input line 73.
+LaTeX Font Info:    Trying to load font information for U+msa on input line 73.
 
 
 (/usr/local/texlive/2026/texmf-dist/tex/latex/amsfonts/umsa.fd
@@ -980,7 +980,7 @@ File: umsa.fd 2013/01/14 v3.01 AMS symbols A
 (/usr/local/texlive/2026/texmf-dist/tex/latex/microtype/mt-msa.cfg
 File: mt-msa.cfg 2006/02/04 v1.1 microtype config. file: AMS symbols (a) (RS)
 )
-LaTeX Font Info:    Trying to load font information for U+msb on input line 71.
+LaTeX Font Info:    Trying to load font information for U+msb on input line 73.
 
 
 (/usr/local/texlive/2026/texmf-dist/tex/latex/amsfonts/umsb.fd
@@ -990,19 +990,14 @@ File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 File: mt-msb.cfg 2005/06/01 v1.0 microtype config. file: AMS symbols (b) (RS)
 )
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <10> on input line 73.
+(Font)              <10> on input line 75.
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <7> on input line 73.
+(Font)              <7> on input line 75.
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <5> on input line 73.
-
-Overfull \hbox (2.44887pt too wide) in paragraph at lines 73--74
-[]\OT1/lmr/m/n/10 (-20) This re-port syn-the-sizes ob-ser-va-tional field cam-p
-aign di-ag-nos-tics (CASES-99, FLOSS, BLLAST,
- []
-
+(Font)              <5> on input line 75.
 LaTeX Font Info:    Trying to load font information for OT1+lmss on input line 
-76.
+78.
+
 (/usr/local/texlive/2026/texmf-dist/tex/latex/lm/ot1lmss.fd
 File: ot1lmss.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
 )
@@ -1010,14 +1005,14 @@ Package microtype Info: Loading generic protrusion settings for font family
 (microtype)             `lmss' (encoding: OT1).
 (microtype)             For optimal results, create family-specific settings.
 (microtype)             See the microtype manual for details.
-LaTeX Font Info:    Trying to load font information for TS1+lmr on input line 7
-9.
+LaTeX Font Info:    Trying to load font information for TS1+lmr on input line 8
+1.
 
 (/usr/local/texlive/2026/texmf-dist/tex/latex/lm/ts1lmr.fd
 File: ts1lmr.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
 )
 LaTeX Font Info:    Trying to load font information for OT1+lmtt on input line 
-81.
+83.
 
 (/usr/local/texlive/2026/texmf-dist/tex/latex/lm/ot1lmtt.fd
 File: ot1lmtt.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
@@ -1035,233 +1030,170 @@ LaTeX Font Info:    External font `lmex10' loaded for size
 al/texlive/2026/texmf-dist/fonts/enc/dvips/lm/lm-rm.enc}{/usr/local/texlive/202
 6/texmf-dist/fonts/enc/dvips/lm/lm-mathit.enc}{/usr/local/texlive/2026/texmf-di
 st/fonts/enc/dvips/lm/lm-ts1.enc}{/usr/local/texlive/2026/texmf-dist/fonts/enc/
-dvips/lm/lm-rmtt.enc}] (./figures/tikz_slow_manifold.tex)
-(./figures/tikz_wsindy_architecture.tex
-LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <9> on input line 16.
-)
-
-Package fancyhdr Warning: \headheight is too small (12.0pt): 
-(fancyhdr)                Make it at least 13.59999pt, for example:
-(fancyhdr)                \setlength{\headheight}{13.59999pt}.
-(fancyhdr)                You might also make \topmargin smaller:
-(fancyhdr)                \addtolength{\topmargin}{-1.59999pt}.
-
-[2
+dvips/lm/lm-rmtt.enc}] [2] (./figures/tikz_slow_manifold.tex)
+(./figures/tikz_wsindy_architecture.tex) [3
 
 {/usr/local/texlive/2026/texmf-dist/fonts/enc/dvips/lm/lm-mathsy.enc}{/usr/loca
-l/texlive/2026/texmf-dist/fonts/enc/dvips/lm/lm-mathex.enc}]
-
-Package fancyhdr Warning: \headheight is too small (12.0pt): 
-(fancyhdr)                Make it at least 13.59999pt, for example:
-(fancyhdr)                \setlength{\headheight}{13.59999pt}.
-(fancyhdr)                You might also make \topmargin smaller:
-(fancyhdr)                \addtolength{\topmargin}{-1.59999pt}.
-
-[3] (./campaign_exports/tables/campaign_summary.tex)
-Overfull \hbox (83.29115pt too wide) in paragraph at lines 1--146
- [][] 
- []
-
-<campaign_exports/figures/campaign_overview.png, id=140, 1104.125pt x 803.0pt>
+l/texlive/2026/texmf-dist/fonts/enc/dvips/lm/lm-mathex.enc}] [4] (./campaign_ex
+ports/tables/campaign_summary.tex)
+<campaign_exports/figures/campaign_overview.png, id=169, 1104.125pt x 803.0pt>
 File: campaign_exports/figures/campaign_overview.png Graphic file (type png)
 <use campaign_exports/figures/campaign_overview.png>
 Package pdftex.def Info: campaign_exports/figures/campaign_overview.png  used o
-n input line 150.
+n input line 175.
 (pdftex.def)             Requested size: 416.72963pt x 303.07245pt.
 
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 155.
-
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `subscript' on input line 155.
+(hyperref)                removing `math shift' on input line 180.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 155.
+(hyperref)                removing `subscript' on input line 180.
 
-<campaign_exports/figures/cases_99_km_uncertainty.png, id=141, 803.0pt x 702.62
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `math shift' on input line 180.
+
+[5
+
+ <./campaign_exports/figures/campaign_overview.png>]
+<campaign_exports/figures/cases_99_km_uncertainty.png, id=182, 803.0pt x 702.62
 5pt>
 File: campaign_exports/figures/cases_99_km_uncertainty.png Graphic file (type p
 ng)
 <use campaign_exports/figures/cases_99_km_uncertainty.png>
 Package pdftex.def Info: campaign_exports/figures/cases_99_km_uncertainty.png  
-used on input line 163.
+used on input line 188.
 (pdftex.def)             Requested size: 217.42265pt x 190.24734pt.
-<campaign_exports/figures/sheba_km_uncertainty.png, id=142, 803.0pt x 702.625pt
+<campaign_exports/figures/sheba_km_uncertainty.png, id=183, 803.0pt x 702.625pt
 >
 File: campaign_exports/figures/sheba_km_uncertainty.png Graphic file (type png)
 
 <use campaign_exports/figures/sheba_km_uncertainty.png>
 Package pdftex.def Info: campaign_exports/figures/sheba_km_uncertainty.png  use
-d on input line 169.
+d on input line 194.
 (pdftex.def)             Requested size: 217.42265pt x 190.24734pt.
-<campaign_exports/figures/floss_km_uncertainty.png, id=143, 803.0pt x 702.625pt
+<campaign_exports/figures/floss_km_uncertainty.png, id=184, 803.0pt x 702.625pt
 >
 File: campaign_exports/figures/floss_km_uncertainty.png Graphic file (type png)
 
 <use campaign_exports/figures/floss_km_uncertainty.png>
 Package pdftex.def Info: campaign_exports/figures/floss_km_uncertainty.png  use
-d on input line 177.
+d on input line 202.
 (pdftex.def)             Requested size: 217.42265pt x 190.24734pt.
-<campaign_exports/figures/bllast_km_uncertainty.png, id=144, 803.0pt x 702.625p
+<campaign_exports/figures/bllast_km_uncertainty.png, id=185, 803.0pt x 702.625p
 t>
 File: campaign_exports/figures/bllast_km_uncertainty.png Graphic file (type png
 )
 <use campaign_exports/figures/bllast_km_uncertainty.png>
 Package pdftex.def Info: campaign_exports/figures/bllast_km_uncertainty.png  us
-ed on input line 183.
+ed on input line 208.
 (pdftex.def)             Requested size: 217.42265pt x 190.24734pt.
-
-Package fancyhdr Warning: \headheight is too small (12.0pt): 
-(fancyhdr)                Make it at least 13.59999pt, for example:
-(fancyhdr)                \setlength{\headheight}{13.59999pt}.
-(fancyhdr)                You might also make \topmargin smaller:
-(fancyhdr)                \addtolength{\topmargin}{-1.59999pt}.
-
-[4
-
- <./campaign_exports/figures/campaign_overview.png>]
-<campaign_exports/figures/cases_99_ri_heatmap.png, id=156, 1104.125pt x 702.625
+<campaign_exports/figures/cases_99_ri_heatmap.png, id=186, 1104.125pt x 702.625
 pt>
 File: campaign_exports/figures/cases_99_ri_heatmap.png Graphic file (type png)
 <use campaign_exports/figures/cases_99_ri_heatmap.png>
 Package pdftex.def Info: campaign_exports/figures/cases_99_ri_heatmap.png  used
- on input line 198.
+ on input line 223.
 (pdftex.def)             Requested size: 217.42265pt x 138.35683pt.
-<campaign_exports/figures/floss_ri_heatmap.png, id=157, 1104.125pt x 702.625pt>
+<campaign_exports/figures/floss_ri_heatmap.png, id=187, 1104.125pt x 702.625pt>
 
 File: campaign_exports/figures/floss_ri_heatmap.png Graphic file (type png)
 <use campaign_exports/figures/floss_ri_heatmap.png>
 Package pdftex.def Info: campaign_exports/figures/floss_ri_heatmap.png  used on
- input line 204.
+ input line 229.
 (pdftex.def)             Requested size: 217.42265pt x 138.35683pt.
-
-
-Package fancyhdr Warning: \headheight is too small (12.0pt): 
-(fancyhdr)                Make it at least 13.59999pt, for example:
-(fancyhdr)                \setlength{\headheight}{13.59999pt}.
-(fancyhdr)                You might also make \topmargin smaller:
-(fancyhdr)                \addtolength{\topmargin}{-1.59999pt}.
-
-[5 <./campaign_exports/figures/cases_99_km_uncertainty.png> <./campaign_exports
-/figures/sheba_km_uncertainty.png> <./campaign_exports/figures/floss_km_uncerta
-inty.png> <./campaign_exports/figures/bllast_km_uncertainty.png>]
-
-Package fancyhdr Warning: \headheight is too small (12.0pt): 
-(fancyhdr)                Make it at least 13.59999pt, for example:
-(fancyhdr)                \setlength{\headheight}{13.59999pt}.
-(fancyhdr)                You might also make \topmargin smaller:
-(fancyhdr)                \addtolength{\topmargin}{-1.59999pt}.
-
-[6 <./campaign_exports/figures/cases_99_ri_heatmap.png> <./campaign_exports/fig
-ures/floss_ri_heatmap.png>]
+ [6 <./campaign_exports/figures/cases_99_km_uncertainty.png> <./campaign_export
+s/figures/sheba_km_uncertainty.png> <./campaign_exports/figures/floss_km_uncert
+ainty.png> <./campaign_exports/figures/bllast_km_uncertainty.png>] [7 <./campai
+gn_exports/figures/cases_99_ri_heatmap.png> <./campaign_exports/figures/floss_r
+i_heatmap.png>]
 (./pde_benchmark/tables/cross_campaign_best_models.tex)
+(./supplements/cross_campaign_results.tex)
 (./pde_benchmark/tables/loso_validation_summary.tex)
-(./pde_benchmark/tables/cases_99_best_equation.tex)
+(./pde_benchmark/tables/cases_99_best_equation.tex [8
+
+])
 (./pde_benchmark/tables/cases_99_best_terms.tex)
-<pde_benchmark/figures/cases_99_pareto_rss.png, id=170, 602.25pt x 401.5pt>
+<pde_benchmark/figures/cases_99_pareto_rss.png, id=208, 602.25pt x 401.5pt>
 File: pde_benchmark/figures/cases_99_pareto_rss.png Graphic file (type png)
 <use pde_benchmark/figures/cases_99_pareto_rss.png>
 Package pdftex.def Info: pde_benchmark/figures/cases_99_pareto_rss.png  used on
- input line 257.
+ input line 294.
 (pdftex.def)             Requested size: 217.42265pt x 144.95035pt.
-<pde_benchmark/figures/cases_99_pareto_r2.png, id=171, 602.25pt x 401.5pt>
+<pde_benchmark/figures/cases_99_pareto_r2.png, id=209, 602.25pt x 401.5pt>
 File: pde_benchmark/figures/cases_99_pareto_r2.png Graphic file (type png)
 <use pde_benchmark/figures/cases_99_pareto_r2.png>
 Package pdftex.def Info: pde_benchmark/figures/cases_99_pareto_r2.png  used on 
-input line 263.
+input line 300.
 (pdftex.def)             Requested size: 217.42265pt x 144.95035pt.
 
-
-Package fancyhdr Warning: \headheight is too small (12.0pt): 
-(fancyhdr)                Make it at least 13.59999pt, for example:
-(fancyhdr)                \setlength{\headheight}{13.59999pt}.
-(fancyhdr)                You might also make \topmargin smaller:
-(fancyhdr)                \addtolength{\topmargin}{-1.59999pt}.
-
-[7
-
-] (./pde_benchmark/tables/sheba_best_equation.tex)
+(./pde_benchmark/tables/sheba_best_equation.tex)
 (./pde_benchmark/tables/sheba_best_terms.tex)
-<pde_benchmark/figures/sheba_pareto_rss.png, id=181, 602.25pt x 401.5pt>
+<pde_benchmark/figures/sheba_pareto_rss.png, id=210, 602.25pt x 401.5pt>
 File: pde_benchmark/figures/sheba_pareto_rss.png Graphic file (type png)
 <use pde_benchmark/figures/sheba_pareto_rss.png>
 Package pdftex.def Info: pde_benchmark/figures/sheba_pareto_rss.png  used on in
-put line 287.
+put line 324.
 (pdftex.def)             Requested size: 217.42265pt x 144.95035pt.
-<pde_benchmark/figures/sheba_pareto_r2.png, id=182, 602.25pt x 401.5pt>
+<pde_benchmark/figures/sheba_pareto_r2.png, id=211, 602.25pt x 401.5pt>
 File: pde_benchmark/figures/sheba_pareto_r2.png Graphic file (type png)
 <use pde_benchmark/figures/sheba_pareto_r2.png>
 Package pdftex.def Info: pde_benchmark/figures/sheba_pareto_r2.png  used on inp
-ut line 293.
+ut line 330.
 (pdftex.def)             Requested size: 217.42265pt x 144.95035pt.
-<pde_benchmark/figures/pde_profile_comparison.png, id=184, 1204.5pt x 501.875pt
+ [9 <./pde_benchmark/figures/cases_99_pareto_rss.png> <./pde_benchmark/figures/
+cases_99_pareto_r2.png>]
+<pde_benchmark/figures/pde_profile_comparison.png, id=220, 1204.5pt x 501.875pt
 >
 File: pde_benchmark/figures/pde_profile_comparison.png Graphic file (type png)
 <use pde_benchmark/figures/pde_profile_comparison.png>
 Package pdftex.def Info: pde_benchmark/figures/pde_profile_comparison.png  used
- on input line 306.
+ on input line 343.
 (pdftex.def)             Requested size: 398.61395pt x 166.0864pt.
 
-
-Package fancyhdr Warning: \headheight is too small (12.0pt): 
-(fancyhdr)                Make it at least 13.59999pt, for example:
-(fancyhdr)                \setlength{\headheight}{13.59999pt}.
-(fancyhdr)                You might also make \topmargin smaller:
-(fancyhdr)                \addtolength{\topmargin}{-1.59999pt}.
-
-[8 <./pde_benchmark/figures/cases_99_pareto_rss.png> <./pde_benchmark/figures/c
-ases_99_pareto_r2.png> <./pde_benchmark/figures/sheba_pareto_rss.png> <./pde_be
-nchmark/figures/sheba_pareto_r2.png>]
-
-Package fancyhdr Warning: \headheight is too small (12.0pt): 
-(fancyhdr)                Make it at least 13.59999pt, for example:
-(fancyhdr)                \setlength{\headheight}{13.59999pt}.
-(fancyhdr)                You might also make \topmargin smaller:
-(fancyhdr)                \addtolength{\topmargin}{-1.59999pt}.
-
-[9 <./pde_benchmark/figures/pde_profile_comparison.png>] (./report.aux)
+(./supplements/numerical_verification.tex) [10 <./pde_benchmark/figures/sheba_p
+areto_rss.png> <./pde_benchmark/figures/sheba_pareto_r2.png> <./pde_benchmark/f
+igures/pde_profile_comparison.png>] (./supplements/reproducibility.tex)
+[11] [12] (./report.aux)
  ***********
 LaTeX2e <2025-11-01>
 L3 programming layer <2026-01-19>
  ***********
 Package rerunfilecheck Info: File `report.out' has not changed.
-(rerunfilecheck)             Checksum: E1BF7D6BDFB89FBF5D35AA3A3EB73556;3399.
+(rerunfilecheck)             Checksum: 803DA1649AABD9A92404C3E5AB137981;4392.
  ) 
 Here is how much of TeX's memory you used:
- 31159 strings out of 467525
- 629964 string characters out of 5418982
- 1063703 words of memory out of 5000000
- 59358 multiletter control sequences out of 15000+600000
- 719087 words of font info for 173 fonts, out of 8000000 for 9000
+ 31238 strings out of 467525
+ 631659 string characters out of 5418982
+ 1066109 words of memory out of 5000000
+ 59404 multiletter control sequences out of 15000+600000
+ 713654 words of font info for 182 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 98i,12n,108p,1003b,952s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 98i,13n,108p,1003b,952s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </usr/local/texlive/2026/texmf-dist/fonts/type1/public/lm/lmbx10.pfb></usr/lo
 cal/texlive/2026/texmf-dist/fonts/type1/public/lm/lmbx12.pfb></usr/local/texliv
-e/2026/texmf-dist/fonts/type1/public/lm/lmex10.pfb></usr/local/texlive/2026/tex
-mf-dist/fonts/type1/public/lm/lmmi10.pfb></usr/local/texlive/2026/texmf-dist/fo
-nts/type1/public/lm/lmmi12.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/
-public/lm/lmmi6.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/lm/l
+e/2026/texmf-dist/fonts/type1/public/lm/lmbx8.pfb></usr/local/texlive/2026/texm
+f-dist/fonts/type1/public/lm/lmex10.pfb></usr/local/texlive/2026/texmf-dist/fon
+ts/type1/public/lm/lmmi10.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/p
+ublic/lm/lmmi12.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/lm/l
 mmi7.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/lm/lmmi8.pfb></
-usr/local/texlive/2026/texmf-dist/fonts/type1/public/lm/lmmi9.pfb></usr/local/t
-exlive/2026/texmf-dist/fonts/type1/public/lm/lmr10.pfb></usr/local/texlive/2026
-/texmf-dist/fonts/type1/public/lm/lmr12.pfb></usr/local/texlive/2026/texmf-dist
-/fonts/type1/public/lm/lmr6.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1
-/public/lm/lmr7.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/lm/l
-mr8.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/lm/lmr9.pfb></us
-r/local/texlive/2026/texmf-dist/fonts/type1/public/lm/lmss10.pfb></usr/local/te
-xlive/2026/texmf-dist/fonts/type1/public/lm/lmss8.pfb></usr/local/texlive/2026/
-texmf-dist/fonts/type1/public/lm/lmss9.pfb></usr/local/texlive/2026/texmf-dist/
-fonts/type1/public/lm/lmssbx10.pfb></usr/local/texlive/2026/texmf-dist/fonts/ty
-pe1/public/lm/lmsy10.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public
-/lm/lmsy8.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/lm/lmsy9.p
-fb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/lm/lmtt10.pfb>
-Output written on report.pdf (9 pages, 784225 bytes).
+usr/local/texlive/2026/texmf-dist/fonts/type1/public/lm/lmmib10.pfb></usr/local
+/texlive/2026/texmf-dist/fonts/type1/public/lm/lmr10.pfb></usr/local/texlive/20
+26/texmf-dist/fonts/type1/public/lm/lmr12.pfb></usr/local/texlive/2026/texmf-di
+st/fonts/type1/public/lm/lmr6.pfb></usr/local/texlive/2026/texmf-dist/fonts/typ
+e1/public/lm/lmr7.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/lm
+/lmr8.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/lm/lmss10.pfb>
+</usr/local/texlive/2026/texmf-dist/fonts/type1/public/lm/lmss8.pfb></usr/local
+/texlive/2026/texmf-dist/fonts/type1/public/lm/lmssbx10.pfb></usr/local/texlive
+/2026/texmf-dist/fonts/type1/public/lm/lmsy10.pfb></usr/local/texlive/2026/texm
+f-dist/fonts/type1/public/lm/lmsy8.pfb></usr/local/texlive/2026/texmf-dist/font
+s/type1/public/lm/lmtt10.pfb>
+Output written on report.pdf (12 pages, 768119 bytes).
 PDF statistics:
- 314 PDF objects out of 1000 (max. 8388607)
- 224 compressed objects within 3 object streams
- 43 named destinations out of 1000 (max. 500000)
- 56599 words of extra memory for PDF output out of 61914 (max. 10000000)
+ 345 PDF objects out of 1000 (max. 8388607)
+ 258 compressed objects within 3 object streams
+ 57 named destinations out of 1000 (max. 500000)
+ 50495 words of extra memory for PDF output out of 51595 (max. 10000000)
 

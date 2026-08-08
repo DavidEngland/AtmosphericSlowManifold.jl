@@ -10,43 +10,43 @@
         "mean_validation_rmse": 10.663910523692437,
         "cross_campaign_stability_score": 1
     },
-    "generated_at": "2026-08-08T08:00:32.470",
+    "generated_at": "2026-08-08T08:25:30.329",
     "campaigns": {
         "SHEBA": {
             "n_candidates": 2,
             "n_observations": 12,
             "best_model": {
-                "bic": -58.28108193149719,
-                "residual_norm": 0.27541868010521803,
-                "latex": "\\frac{\\partial u}{\\partial t} = 3.94889\\,\\frac{\\partial^{2} u}{\\partial z^{2}}",
-                "aic": -58.76598858128519,
+                "bic": -58.281081760438326,
+                "residual_norm": 0.2754186820682517,
+                "latex": "\\frac{\\partial u}{\\partial t} = 32.1514\\,\\frac{\\partial^{2} u}{\\partial z^{2}}",
+                "aic": -58.76598841022633,
                 "terms": 1
             },
             "n_pareto_rss": 1,
             "n_pareto_r2": 1,
             "observation_source": "two_level_linear_profile",
-            "best_candidate": "baseline",
+            "best_candidate": "physical",
             "candidates": [
                 {
-                    "bic": -58.28108193149719,
-                    "residual_norm": 0.27541868010521803,
-                    "r2": 0.9966365248650356,
+                    "bic": -58.281081522126755,
+                    "residual_norm": 0.2754186848030624,
+                    "r2": 0.9966365247502933,
                     "k": 1,
-                    "aic": -58.76598858128519,
-                    "pareto_r2": true,
-                    "rss": 0.07585544935090043,
-                    "pareto_rss": true,
+                    "aic": -58.765988171914756,
+                    "pareto_r2": false,
+                    "rss": 0.07585545193864865,
+                    "pareto_rss": false,
                     "candidate": "baseline"
                 },
                 {
-                    "bic": -58.28108177465215,
-                    "residual_norm": 0.275418681905137,
-                    "r2": 0.9966365248210736,
+                    "bic": -58.281081760438326,
+                    "residual_norm": 0.2754186820682517,
+                    "r2": 0.9966365248170896,
                     "k": 1,
-                    "aic": -58.76598842444015,
-                    "pareto_r2": false,
-                    "rss": 0.07585545034236305,
-                    "pareto_rss": false,
+                    "aic": -58.76598841022633,
+                    "pareto_r2": true,
+                    "rss": 0.07585545043221271,
+                    "pareto_rss": true,
                     "candidate": "physical"
                 }
             ]
@@ -55,10 +55,10 @@
             "n_candidates": 2,
             "n_observations": 12,
             "best_model": {
-                "bic": 0.5587792870564201,
-                "residual_norm": 3.1969525186230916,
+                "bic": 0.5587792951289732,
+                "residual_norm": 3.196952519698407,
                 "latex": "\\frac{\\partial u}{\\partial t} = 6.12\\,\\frac{\\partial^{2} u}{\\partial z^{2}}",
-                "aic": 0.07387263726841975,
+                "aic": 0.07387264534097282,
                 "terms": 1
             },
             "n_pareto_rss": 1,
@@ -67,24 +67,24 @@
             "best_candidate": "baseline",
             "candidates": [
                 {
-                    "bic": 0.5587792870564201,
-                    "residual_norm": 3.1969525186230916,
-                    "r2": -0.22894910071006613,
+                    "bic": 0.5587792951289732,
+                    "residual_norm": 3.196952519698407,
+                    "r2": -0.22894910153679615,
                     "k": 1,
-                    "aic": 0.07387263726841975,
+                    "aic": 0.07387264534097282,
                     "pareto_r2": true,
-                    "rss": 10.22050540633053,
+                    "rss": 10.220505413205993,
                     "pareto_rss": true,
                     "candidate": "baseline"
                 },
                 {
-                    "bic": 0.558779291819385,
-                    "residual_norm": 3.196952519257549,
-                    "r2": -0.2289491011978535,
+                    "bic": 0.5587792959858013,
+                    "residual_norm": 3.196952519812542,
+                    "r2": -0.22894910162454596,
                     "k": 1,
-                    "aic": 0.07387264203138466,
+                    "aic": 0.07387264619780098,
                     "pareto_r2": false,
-                    "rss": 10.220505410387188,
+                    "rss": 10.220505413935761,
                     "pareto_rss": false,
                     "candidate": "physical"
                 }

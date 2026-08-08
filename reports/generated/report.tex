@@ -6,6 +6,7 @@
 \usepackage{amsmath,amssymb,amsfonts}
 \usepackage{lmodern}
 \usepackage{microtype}
+\setlength{\emergencystretch}{2em}
 
 % --- Color Palette ---
 \usepackage[dvipsnames]{xcolor}
@@ -27,6 +28,7 @@
 \usepackage{fancyhdr}
 \pagestyle{fancy}
 \fancyhf{}
+\setlength{\headheight}{14pt}
 \rhead{\textcolor{darkslate}{\small \sffamily Atmospheric Boundary Layer PDE Closure Report}}
 \lhead{\textcolor{darkslate}{\small \sffamily AtmosphericSlowManifold.jl}}
 \cfoot{\thepage}
@@ -70,15 +72,15 @@
 \maketitle
 
 \begin{abstract}
-\noindent This report synthesizes observational field campaign diagnostics (CASES-99, FLOSS, BLLAST, and SHEBA) with automated weak-form equation discovery (WSINDy) to formulate data-driven closure parameterizations for atmospheric boundary layer (ABL) momentum dynamics. We present Bayesian posterior credibility intervals for vertical eddy diffusivity $K_m(z)$, time-height cross-sections of gradient Richardson numbers $Ri_g(z,t)$, and Pareto-optimal partial differential equation (PDE) closures solved using a 12-mode Gegenbauer Spectral Galerkin discretization.
+\noindent This report synthesizes observational field campaign diagnostics (CASES-99, FLOSS, BLLAST, and SHEBA) with weak-form equation discovery (WSINDy) and geometric slow-manifold interpretation for atmospheric boundary layer (ABL) momentum dynamics. We present deterministic Monte Carlo uncertainty envelopes for vertical eddy diffusivity $K_m(z)$, time-height cross-sections of gradient Richardson numbers $Ri_g(z,t)$, and candidate partial differential equation (PDE) closures solved using a 12-mode Gegenbauer spectral Galerkin discretization.
 \end{abstract}
 
 \begin{tcolorbox}[executivebox]
 \textbf{Executive Takeaways \& Benchmark Highlights:}
 \begin{itemize}\setlength{\itemsep}{2pt}
-    \item \textbf{Data Ingestion:} Processed 84,607 high-resolution observational soundings across nocturnal stable, arctic, afternoon convective decay, and complex terrain regimes.
-    \item \textbf{Equation Discovery:} Weak-form SINDy identifies optimal polynomial-shear closure formulations that balance sparsity ($k$) with residual error.
-    \item \textbf{Galerkin Stability:} Coupling discovered PDE closures with stiff Rosenbrock solvers (\texttt{Rodas5P}) avoids numerical blowup and preserves physical slow-manifold collapse dynamics.
+    \item \textbf{Data Ingestion:} Processed 85,207 observational records across nocturnal stable, Arctic, afternoon convective-decay, and complex-terrain regimes.
+    \item \textbf{Model Evaluation:} Sparse candidate closures are compared using residual error, $R^2$, AIC, BIC, Pareto selection, and leave-one-site-out validation.
+    \item \textbf{Galerkin Integration:} Campaign-derived modal profiles are integrated with the stiff Rosenbrock solver \texttt{Rodas5P}; all reported candidate runs complete successfully.
 \end{itemize}
 \end{tcolorbox}
 
@@ -107,6 +109,14 @@ To robustly extract spatial derivatives from noisy observational data, we utiliz
 \end{equation}
 This projects spatial derivatives onto test function derivatives, bypassing numeric noise amplification.
 
+For a candidate operator library $\boldsymbol{\Theta}(u)$, the discretized weak system is written
+\begin{equation}
+    \mathbf{b} = \mathbf{G}\boldsymbol{\xi},
+    \qquad
+    G_{jk} = \left\langle \theta_k(u), \phi_j \right\rangle,
+\end{equation}
+where $\boldsymbol{\xi}$ contains the sparse closure coefficients. Sequential thresholding or constrained regression removes unsupported terms, while AIC, BIC, and Pareto ranking balance residual reduction against model complexity.
+
 \subsection{Phase-Space Collapse and Discovery Architecture}
 
 Figure~\ref{fig:slow_manifold} details the high-dimensional phase-space trajectory decaying onto the slow manifold $\mathcal{M}$, while Figure~\ref{fig:wsindy_architecture} illustrates the end-to-end processing pipeline from field data ingestion to stiff ODE integration.
@@ -125,6 +135,21 @@ Figure~\ref{fig:slow_manifold} details the high-dimensional phase-space trajecto
     \label{fig:wsindy_architecture}
 \end{figure}
 
+\subsection{Geometric Slow-Manifold Interpretation}
+
+The geometric interpretation begins from a fast--slow system
+\begin{equation}
+    \varepsilon \dot{\mathbf{x}} = \mathbf{f}(\mathbf{x},\mathbf{y};\mathbf{p}),
+    \qquad
+    \dot{\mathbf{y}} = \mathbf{g}(\mathbf{x},\mathbf{y};\mathbf{p}),
+    \qquad 0 < \varepsilon \ll 1,
+\end{equation}
+in which $\mathbf{x}$ denotes rapidly adjusting turbulent or high-order modal coordinates and $\mathbf{y}$ denotes slowly varying balanced coordinates. In the singular limit $\varepsilon \to 0$, the critical manifold is
+\begin{equation}
+    \mathcal{S}_0 = \left\{(\mathbf{x},\mathbf{y}) : \mathbf{f}(\mathbf{x},\mathbf{y};\mathbf{p}) = \mathbf{0}\right\}.
+\end{equation}
+Where the fast Jacobian $D_{\mathbf{x}}\mathbf{f}$ has no eigenvalues on the imaginary axis, Fenichel theory implies persistence of a nearby invariant slow manifold $\mathcal{S}_{\varepsilon}$. The reduced PDE closures are interpreted as evolution laws on, or close to, this attracting set after fast modal transients decay. This benchmark tests the numerical reduced dynamics; direct transversality and fold-distance measurements remain a planned validation layer and are not inferred from $Ri_g$ alone.
+
 \clearpage
 % ==============================================================================
 \section{Field Campaign Dataset Diagnostics}
@@ -142,7 +167,7 @@ Four distinct field campaigns provide the empirical baseline for model discovery
     \centering
     \caption{Field campaign dataset diagnostics, height levels, and stability parameter ranges.}
     \label{tab:campaign_summary}
-    \input{campaign_exports/tables/campaign_summary.tex}
+    \resizebox{\linewidth}{!}{\input{campaign_exports/tables/campaign_summary.tex}}
 \end{table}
 
 \begin{figure}[H]
@@ -154,7 +179,7 @@ Four distinct field campaigns provide the empirical baseline for model discovery
 
 \subsection{Vertical Eddy Diffusivity $K_m(z)$ Uncertainty}
 
-Bayesian parameter estimation propagates profile uncertainty through similarity relationships to establish $95\%$ posterior credibility ribbons for $K_m(z)$ across each observational site.
+The present envelopes are uncertainty-propagation intervals rather than fitted Bayesian posterior credible intervals. For each campaign, 1,000 deterministic Monte Carlo draws use seed 42 with $\kappa \sim \mathcal{N}(0.40,0.02^2)$, $\beta \sim \mathcal{N}(4.70,0.50^2)$, and a campaign-centered friction velocity $u_* \sim \mathcal{N}(\overline{u_*},0.05^2)$ truncated below at $0.01\,\mathrm{m\,s^{-1}}$. The plotted bands are the empirical $2.5\%$, $50\%$, and $97.5\%$ quantiles of the resulting $K_m(z)$ profiles. Hierarchical posterior calibration with MCMC or variational inference is a separate framework capability and is not claimed for this benchmark run.
 
 \begin{figure}[H]
     \centering
@@ -215,6 +240,10 @@ The gradient Richardson number $Ri_g = \frac{g}{\theta_0} \frac{\partial \theta 
 
 Empirically discovered PDE closures are evaluated against standard neutral momentum formulations using a 12-mode Gegenbauer Spectral Galerkin expansion integrated with the stiff \texttt{Rodas5P} Rosenbrock solver.
 
+\subsection{Why a Gegenbauer Basis?}
+
+Gegenbauer polynomials $C_n^{(\lambda)}(x)$ form an orthogonal family on $[-1,1]$ under the weight $(1-x^2)^{\lambda-1/2}$. The parameter $\lambda$ continuously connects commonly used spectral families and permits the basis weighting to be adapted without changing the Galerkin architecture. Here $\lambda=0.75$ and 12 modes provide a compact representation of campaign wind profiles while retaining analytical mass, stiffness, and nonlinear interaction operators. The finite truncation is a modeling choice rather than a demonstrated convergence limit; systematic mode-refinement studies are future work.
+
 \subsection{Cross-Campaign Discovered Model Summary}
 
 Table~\ref{tab:cross_campaign_models} details performance metrics for optimal discovered closures identified across all target field sites.
@@ -224,6 +253,14 @@ Table~\ref{tab:cross_campaign_models} details performance metrics for optimal di
     \caption{Cross-campaign Pareto-optimal discovered model performance metrics.}
     \label{tab:cross_campaign_models}
     \input{pde_benchmark/tables/cross_campaign_best_models.tex}
+\end{table}
+
+\begin{table}[H]
+    \centering
+    \small
+    \caption{Selected cross-campaign benchmark results generated from the validated JSON and CSV artifacts. Observation basis records how each campaign is mapped into modal space.}
+    \label{tab:cross_campaign_results}
+    \resizebox{\linewidth}{!}{\input{supplements/cross_campaign_results.tex}}
 \end{table}
 
 \subsection{Leave-One-Site-Out (LOSO) Cross-Validation}
@@ -307,5 +344,36 @@ Figure~\ref{fig:pde_profile_comp} compares terminal modal profile amplitudes pro
     \caption{End-state velocity profile comparisons across observed mean states, neutral baselines, and data-driven similarity closures.}
     \label{fig:pde_profile_comp}
 \end{figure}
+
+\subsection{PDE Consistency and Numerical Checks}
+
+The automated validator requires every physical and baseline integration to return \texttt{Success}; all RSS, residual-norm, $R^2$, AIC, and BIC values to be finite; $\mathrm{RSS}=\lVert\mathbf{r}\rVert_2^2$; information criteria to recompute from RSS, sample count, and sparsity; and each campaign to have nonempty RSS and $R^2$ Pareto fronts. These checks establish internal metric consistency and successful stiff integration. They do not yet establish mass conservation, grid convergence, or a complete kinetic-energy budget.
+
+\begin{table}[H]
+    \centering
+    \caption{Automated numerical verification performed on the generated benchmark artifacts.}
+    \label{tab:numerical_verification}
+    \input{supplements/numerical_verification.tex}
+\end{table}
+
+\section{Reproducibility}
+
+The campaign, benchmark, validation, supplement, and report stages are executable through \texttt{make campaign-export}, \texttt{make pde-benchmark}, and \texttt{make report}. The report target validates upstream artifacts before compilation. \texttt{Project.toml} specifies direct dependencies and compatibility bounds, while \texttt{Manifest.toml} pins the resolved environment. Table~\ref{tab:reproducibility} is regenerated from the active runtime rather than maintained manually.
+
+\begin{table}[H]
+    \centering
+    \small
+    \caption{Software environment and execution metadata for this report build.}
+    \label{tab:reproducibility}
+    \resizebox{\linewidth}{!}{\input{supplements/reproducibility.tex}}
+\end{table}
+
+\section{Conclusions and Future Work}
+
+This benchmark demonstrates a reproducible path from heterogeneous ABL observations to modal initialization, closure-dependent Galerkin integration, model-selection metrics, and publication artifacts. The current SHEBA result is represented accurately by the terminal modal comparison, whereas CASES-99 has negative $R^2$, indicating that its 12-hour terminal prediction is worse than a modal-mean reference. Physical and neutral candidate scores are also nearly tied. These outcomes should be read as diagnostic evidence about the present benchmark formulation, not as proof that one closure is universally superior.
+
+The sparse diffusion terms provide an interpretable reduced description, but the present spectral backend compresses much of the vertical diffusivity structure into low-dimensional response scales. The next numerical priority is to project the full $K_m(z)$ profile into the Galerkin diffusion operator and compare complete time-resolved modal trajectories rather than only terminal states. Mode-refinement, energy-budget closure, and conservation tests are also needed before making stronger claims about numerical consistency.
+
+The GSPT interpretation supplies the framework's distinctive scientific hypothesis: observed turbulent profiles rapidly approach an attracting slow manifold and subsequently evolve according to reduced closure dynamics. Future work will test that hypothesis directly with transversality, spectral-gap, fold-distance, and normal-hyperbolicity diagnostics; extend hierarchical calibration across campaigns; and evaluate whether the discovered operator structure persists across sites, seasons, and forcing regimes.
 
 \end{document}

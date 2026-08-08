@@ -1,5 +1,5 @@
 \begin{tikzpicture}[
-    node distance=1.4cm and 1.0cm,
+    node distance=1.15cm and 1.3cm,
     >=Stealth,
     block/.style={
         draw=navyblue, fill=navyblue!5, ultra thick, rectangle, rounded corners=4pt,
@@ -11,16 +11,22 @@
     },
     arrow/.style={->, ultra thick, color=navyblue}
 ]
-    \node[block] (data) {\textbf{ABL Boundary Layer Data}\\$\mathbf{u}(z,t), Ri_g(z,t), \zeta = z/L$};
-    \node[process, right=of data] (wsindy) {\textbf{Weak-Form Integration (WSINDy)}\\$\langle \partial_t u, \phi_j \rangle = \langle \mathcal{N}(u), \phi_j \rangle$};
-    \node[block, right=of wsindy] (regress) {\textbf{Constrained STLMS}\\$\min \|\mathbf{G}\mathbf{\Xi} - \mathbf{V}\|_2^2 + \lambda \|\mathbf{\Xi}\|_1$\\\footnotesize Bounds: $K_m \ge 0$};
-    \node[process, below=of regress] (pde) {\textbf{Discovered PDE Closure}\\$\frac{\partial u}{\partial t} = \frac{\partial}{\partial z}\left[K_m(z)\frac{\partial u}{\partial z}\right]$};
-    \node[block, left=of pde] (galerkin) {\textbf{Spectral Galerkin}\\$M \dot{\mathbf{a}} = \mathbf{R}(\mathbf{a})$};
-    \node[process, left=of galerkin] (solver) {\textbf{Stiff ODE Solver}\\\texttt{Rodas5P}};
+    \node[block] (data) {\textbf{Raw Observations}\\campaign CSV/NetCDF};
+    \node[process, right=of data] (preprocess) {\textbf{Profile Preprocessing}\\aliases, units, finite records};
+    \node[block, right=of preprocess] (spectral) {\textbf{Spectral Transform}\\$u(z,t) \mapsto \mathbf{a}(t)$};
+    \node[process, below=of spectral] (weak) {\textbf{Weak Integration}\\$\mathbf{b}=\mathbf{G}\boldsymbol{\xi}$};
+    \node[block, left=of weak] (selection) {\textbf{Sparse Model Selection}\\constraints, AIC/BIC, Pareto};
+    \node[process, left=of selection] (pde) {\textbf{PDE Closure}\\symbolic operator terms};
+    \node[block, below=of pde] (galerkin) {\textbf{Galerkin Projection}\\$\mathbf{M}\dot{\mathbf{a}}=\mathbf{R}(\mathbf{a})$};
+    \node[process, right=of galerkin] (solver) {\textbf{Stiff Integration}\\\texttt{Rodas5P}};
+    \node[block, right=of solver] (validation) {\textbf{Validation \& Export}\\metrics, LOSO, tables, figures};
 
-    \draw[arrow] (data) -- (wsindy);
-    \draw[arrow] (wsindy) -- (regress);
-    \draw[arrow] (regress) -- (pde);
+    \draw[arrow] (data) -- (preprocess);
+    \draw[arrow] (preprocess) -- (spectral);
+    \draw[arrow] (spectral) -- (weak);
+    \draw[arrow] (weak) -- (selection);
+    \draw[arrow] (selection) -- (pde);
     \draw[arrow] (pde) -- (galerkin);
     \draw[arrow] (galerkin) -- (solver);
+    \draw[arrow] (solver) -- (validation);
 \end{tikzpicture}

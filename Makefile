@@ -71,9 +71,10 @@ pde-validate:
 	$(JULIA) $(PROJECT) scripts/validate_pde_benchmark.jl
 
 ## report: Build benchmark PDF report from template and generated artifacts
-report:
+report: campaign-validate pde-validate
 	@mkdir -p reports/generated
 	@mkdir -p reports/generated/figures
+	$(JULIA) $(PROJECT) scripts/generate_report_supplements.jl
 	cp templates/report.tex.mustache reports/generated/report.tex
 	cp templates/figures/*.tex reports/generated/figures/
 	@if command -v latexmk >/dev/null 2>&1; then \
