@@ -4,7 +4,7 @@
         "mean_validation_rmse": 10.663910523692437,
         "cross_campaign_stability_score": 1
     },
-    "generated_at": "2026-08-07T18:28:54.898",
+    "generated_at": "2026-08-07T20:48:53.052",
     "campaigns": {
         "SHEBA": {
             "n_candidates": 2,

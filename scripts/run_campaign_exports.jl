@@ -645,45 +645,17 @@ end
 
 tex_path = joinpath(TABLE_DIR, "campaign_summary.tex")
 open(tex_path, "w") do io
-    write(io, "\\begin{table}[htbp]\n")
-    write(io, "  \\centering\n")
-    write(io, "  \\caption{Atmospheric Boundary Layer Field Campaign Dataset Overview}\n")
-    write(io, "  \\label{tab:campaign-overview}\n")
-    write(io, "  \\begin{tabular}{lcccc}\n")
-    write(io, "    \\toprule\n")
-    write(io, "    \\textbf{Campaign} & \\textbf{Observations} & \\textbf{Height Levels} & \\textbf{Mean Wind Speed (\$\\mathrm{m\\,s^{-1}}\$)} & \\textbf{Median Richardson No.} \\\\ \n")
-    write(io, "    \\midrule\n")
+    println(io, "\\begin{tabular}{lcccc}")
+    println(io, "\\toprule")
+    println(io, "\\textbf{Campaign} & \\textbf{Observations} & \\textbf{Height Levels} & \\textbf{Mean Wind Speed (\$\\mathrm{m\\,s^{-1}}\$)} & \\textbf{Median Richardson No.} \\\\")
+    println(io, "\\midrule")
     for r in eachrow(overview)
-        wind = isfinite(r.mean_wind_speed) ? string(round(r.mean_wind_speed; digits=3)) : "NA"
-        ri = isfinite(r.mean_ri) ? string(round(r.mean_ri; digits=3)) : "NA"
-        write(io, "    \\texttt{$(r.campaign)} & $(r.observations) & $(r.height_levels) & $(wind) & $(ri) \\\\ \n")
+        wind = isfinite(r.mean_wind_speed) ? string(round(r.mean_wind_speed; digits = 3)) : "NA"
+        ri = isfinite(r.mean_ri) ? string(round(r.mean_ri; digits = 3)) : "NA"
+        println(io, "\\texttt{$(r.campaign)} & $(r.observations) & $(r.height_levels) & $(wind) & $(ri) \\\\")
     end
-    write(io, "    \\bottomrule\n")
-    write(io, "  \\end{tabular}\n")
-    write(io, "\\end{table}\n\n")
-
-    write(io, "\\begin{figure}[htbp]\n")
-    write(io, "  \\centering\n")
-    write(io, "  \\includegraphics[width=0.92\\linewidth]{campaign_exports/figures/$(basename(overview_fig))}\n")
-    write(io, "  \\caption{Comparative campaign overview for derived mean wind speed and median stability metrics.}\n")
-    write(io, "  \\label{fig:campaign-overview}\n")
-    write(io, "\\end{figure}\n\n")
-
-    write(io, "\\begin{table}[htbp]\n")
-    write(io, "  \\centering\n")
-    write(io, "  \\caption{Campaign Production Output Summary}\n")
-    write(io, "  \\label{tab:campaign-production-summary}\n")
-    write(io, "  \\begin{tabular}{lcccc}\n")
-    write(io, "    \\toprule\n")
-    write(io, "    \\textbf{Campaign} & \\textbf{Status} & \\textbf{Rows} & \\textbf{Columns} & \\textbf{K\\_m Ribbon} \\\\ \n")
-    write(io, "    \\midrule\n")
-    for r in eachrow(summary)
-        km_name = latex_escape_text(basename(r.km_uncertainty_fig))
-        write(io, "    \\texttt{$(r.campaign)} & \\texttt{$(r.status)} & $(r.n_rows) & $(r.n_columns) & \\texttt{$(km_name)} \\\\ \n")
-    end
-    write(io, "    \\bottomrule\n")
-    write(io, "  \\end{tabular}\n")
-    write(io, "\\end{table}\n")
+    println(io, "\\bottomrule")
+    println(io, "\\end{tabular}")
 end
 
 println("Campaign export run complete.")

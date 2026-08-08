@@ -451,8 +451,11 @@ function dispatch_solve(
     pde_sys::PDESystem,
     closure::AbstractClosure,
     tspan::Tuple{Float64, Float64};
-    solver = Rodas5P(),
+    solver = Rodas5P(autodiff = true),
     u0 = nothing,
+    reltol::Real = 1e-6,
+    abstol::Real = 1e-8,
+    maxiters::Int = 1_000_000,
     kwargs...
 )
     workspace = build_boundary_layer_workspace(disc, closure)
@@ -556,5 +559,5 @@ function dispatch_solve(
 
     odef = ODEFunction(rhs_mass!; jac = jac_mass!, mass_matrix = M)
     prob = ODEProblem(odef, init, tspan, p)
-    return solve(prob, solver; kwargs...)
+    return solve(prob, solver; reltol = reltol, abstol = abstol, maxiters = maxiters, kwargs...)
 end

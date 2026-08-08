@@ -124,8 +124,7 @@ function export_cross_campaign_summary_tex(
     open(filepath, "w") do io
         println(io, "\\begin{tabular}{l r r r}")
         println(io, "\\toprule")
-        dollar_tex = string('\\', '$')
-        println(io, "Site & Active terms & " * dollar_tex * "R^{2}" * dollar_tex * " & Residual norm \\\\")
+        println(io, "Site & Active terms & " * "\$R^{2}\$" * " & Residual norm " * "\\\\")
         println(io, "\\midrule")
 
         for row in eachrow(summary_df)
@@ -232,7 +231,7 @@ end
 
 function solve_with_fallback(pde_sys, closure, disc, tspan, u0)
     solver_chain = (
-        (name = "TRBDF2", alg = TRBDF2(autodiff = true)),
+        (name = "Rodas5P", alg = Rodas5P(autodiff = true)),
         (name = "FBDF", alg = FBDF()),
         (name = "RadauIIA5", alg = RadauIIA5()),
     )

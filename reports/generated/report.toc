@@ -1,9 +1,9 @@
 \contentsline {section}{\numberline {1}Field Campaign Dataset Diagnostics}{2}{section.1}%
-\contentsline {subsection}{\numberline {1.1}Vertical Eddy Diffusivity $K_m(z)$ Uncertainty}{3}{subsection.1.1}%
-\contentsline {subsection}{\numberline {1.2}Stability and Diagnostic Metrics}{5}{subsection.1.2}%
-\contentsline {section}{\numberline {2}PDE Closure Benchmark \& Model Discovery}{6}{section.2}%
-\contentsline {subsection}{\numberline {2.1}Cross-Campaign Discovered Model Summary}{6}{subsection.2.1}%
-\contentsline {subsection}{\numberline {2.2}Leave-One-Site-Out (LOSO) Cross-Validation}{6}{subsection.2.2}%
-\contentsline {subsection}{\numberline {2.3}CASES-99 Optimal Pareto Closure}{6}{subsection.2.3}%
-\contentsline {subsection}{\numberline {2.4}SHEBA Optimal Pareto Closure}{7}{subsection.2.4}%
-\contentsline {subsection}{\numberline {2.5}Spectral Galerkin Modal Profiles}{8}{subsection.2.5}%
+\contentsline {subsection}{\numberline {1.1}Vertical Eddy Diffusivity $K_m(z)$ Uncertainty}{2}{subsection.1.1}%
+\contentsline {subsection}{\numberline {1.2}Stability and Diagnostic Metrics}{4}{subsection.1.2}%
+\contentsline {section}{\numberline {2}PDE Closure Benchmark \& Model Discovery}{5}{section.2}%
+\contentsline {subsection}{\numberline {2.1}Cross-Campaign Discovered Model Summary}{5}{subsection.2.1}%
+\contentsline {subsection}{\numberline {2.2}Leave-One-Site-Out (LOSO) Cross-Validation}{5}{subsection.2.2}%
+\contentsline {subsection}{\numberline {2.3}CASES-99 Optimal Pareto Closure}{5}{subsection.2.3}%
+\contentsline {subsection}{\numberline {2.4}SHEBA Optimal Pareto Closure}{6}{subsection.2.4}%
+\contentsline {subsection}{\numberline {2.5}Spectral Galerkin Modal Profiles}{7}{subsection.2.5}%
