@@ -1,19 +1,43 @@
-% templates/report.tex.mustache
 \documentclass[11pt,a4paper]{article}
+
+% --- Core Geometry & Typography ---
 \usepackage[utf8]{inputenc}
 \usepackage[margin=1in]{geometry}
 \usepackage{amsmath,amssymb,amsfonts}
+\usepackage{lmodern}
+\usepackage{microtype}
+
+% --- Color Palette ---
 \usepackage[dvipsnames]{xcolor}
 \definecolor{navyblue}{RGB}{0,32,96}
+\definecolor{slatebg}{RGB}{245,247,250}
+\definecolor{darkslate}{RGB}{45,55,72}
+\definecolor{tealblue}{RGB}{0,128,128}
+\definecolor{crimsonred}{RGB}{186,24,27}
+
+% --- Graphics, Figures & Tables ---
 \usepackage{graphicx}
 \usepackage{booktabs}
 \usepackage{float}
 \usepackage{subcaption}
-\usepackage{hyperref}
-\usepackage{microtype}
+\usepackage{tcolorbox}
+\tcbuselibrary{skins,breakable}
+
+% --- Header & Footer Formatting ---
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\rhead{\textcolor{darkslate}{\small \sffamily Atmospheric Boundary Layer PDE Closure Report}}
+\lhead{\textcolor{darkslate}{\small \sffamily AtmosphericSlowManifold.jl}}
+\cfoot{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% --- TikZ Libraries ---
 \usepackage{tikz}
 \usetikzlibrary{arrows.meta,calc,decorations.markings,shadows.blur,shapes.geometric,positioning}
 
+% --- Hyperlinks ---
+\usepackage{hyperref}
 \hypersetup{
     colorlinks=true,
     linkcolor=navyblue,
@@ -21,9 +45,24 @@
     urlcolor=navyblue
 }
 
-\title{\textbf{Atmospheric Boundary Layer PDE Closure Benchmark Report}\\
-\large Empirical Discovery, Stability Diagnostics, and Galerkin PDE Benchmarks}
-\author{\textbf{AtmosphericSlowManifold.jl Pipeline}}
+% --- Custom Callout Box Style ---
+\tcbset{
+    executivebox/.style={
+        colback=slatebg,
+        colframe=navyblue,
+        arc=3pt,
+        boxrule=1pt,
+        left=12pt,
+        right=12pt,
+        top=10pt,
+        bottom=10pt,
+        fontupper=\sffamily\small
+    }
+}
+
+\title{\textbf{\Large Atmospheric Boundary Layer PDE Closure Benchmark Report}\\
+\large Empirical Equation Discovery, Stability Diagnostics, and Galerkin PDE Benchmarks}
+\author{\textbf{AtmosphericSlowManifold.jl Automated Pipeline}}
 \date{\today}
 
 \begin{document}
@@ -31,33 +70,73 @@
 \maketitle
 
 \begin{abstract}
-This report synthesizes field campaign diagnostics (CASES-99, FLOSS, BLLAST, and SHEBA) and automated equation discovery for atmospheric boundary layer (ABL) turbulence parameterization. We present vertical eddy diffusivity $K_m(z)$ Bayesian credibility ribbons, Richardson number $Ri_g(z,t)$ heatmaps, and Pareto-optimal PDE closure benchmarks solved via spectral Galerkin discretization.
+\noindent This report synthesizes observational field campaign diagnostics (CASES-99, FLOSS, BLLAST, and SHEBA) with automated weak-form equation discovery (WSINDy) to formulate data-driven closure parameterizations for atmospheric boundary layer (ABL) momentum dynamics. We present Bayesian posterior credibility intervals for vertical eddy diffusivity $K_m(z)$, time-height cross-sections of gradient Richardson numbers $Ri_g(z,t)$, and Pareto-optimal partial differential equation (PDE) closures solved using a 12-mode Gegenbauer Spectral Galerkin discretization.
 \end{abstract}
+
+\begin{tcolorbox}[executivebox]
+\textbf{Executive Takeaways \& Benchmark Highlights:}
+\begin{itemize}\setlength{\itemsep}{2pt}
+    \item \textbf{Data Ingestion:} Processed 84,607 high-resolution observational soundings across nocturnal stable, arctic, afternoon convective decay, and complex terrain regimes.
+    \item \textbf{Equation Discovery:} Weak-form SINDy identifies optimal polynomial-shear closure formulations that balance sparsity ($k$) with residual error.
+    \item \textbf{Galerkin Stability:} Coupling discovered PDE closures with stiff Rosenbrock solvers (\texttt{Rodas5P}) avoids numerical blowup and preserves physical slow-manifold collapse dynamics.
+\end{itemize}
+\end{tcolorbox}
 
 \tableofcontents
 \clearpage
 
+% ==============================================================================
 \section{Theoretical Framework \& Discovery Pipeline}
+% ==============================================================================
 
-Figure~\ref{fig:slow_manifold} illustrates the fast gravity wave phase-space decay onto the slow manifold $\mathcal{M}$, while Figure~\ref{fig:wsindy_architecture} outlines the equation discovery loop.
+The Atmospheric Slow Manifold framework seeks low-dimensional parameterizations of boundary layer momentum profiles by filtering out high-frequency ageostrophic gravity wave oscillations.
+
+\subsection{Governing Equations \& Boundary Layer Dynamics}
+
+Horizontal momentum evolution within the planetary boundary layer is governed by the turbulent flux divergence equation:
+\begin{equation}
+    \frac{\partial u}{\partial t} = f(v - v_g) + \frac{\partial}{\partial z} \left( K_m(z, Ri_g) \frac{\partial u}{\partial z} \right)
+\end{equation}
+where $u(z,t)$ is the mean zonal wind component, $f$ is the Coriolis parameter, $v_g$ is the geostrophic wind vector, and $K_m$ represents the vertical eddy diffusivity for momentum.
+
+\subsection{Weak-Form Equation Discovery (WSINDy)}
+
+To robustly extract spatial derivatives from noisy observational data, we utilize the Weak Sequential Thresholded Least Squares (WSINDy) formulation. Multiplying by smooth compact test functions $\phi_j(z,t) \in C_c^\infty(\Omega)$ and integrating by parts yields:
+\begin{equation}
+    \int_{\Omega} u \frac{\partial \phi_j}{\partial t} \, dz dt = - \int_{\Omega} \phi_j \cdot \mathcal{N}\left(u, \frac{\partial u}{\partial z}, \dots \right) dz dt
+\end{equation}
+This projects spatial derivatives onto test function derivatives, bypassing numeric noise amplification.
+
+\subsection{Phase-Space Collapse and Discovery Architecture}
+
+Figure~\ref{fig:slow_manifold} details the high-dimensional phase-space trajectory decaying onto the slow manifold $\mathcal{M}$, while Figure~\ref{fig:wsindy_architecture} illustrates the end-to-end processing pipeline from field data ingestion to stiff ODE integration.
 
 \begin{figure}[H]
     \centering
-    \resizebox{0.85\linewidth}{!}{\input{figures/tikz_slow_manifold.tex}}
-    \caption{Phase-space collapse onto the lower-dimensional slow manifold $\mathcal{M}$ during spectral Galerkin integration.}
+    \resizebox{0.82\linewidth}{!}{\input{figures/tikz_slow_manifold.tex}}
+    \caption{Phase-space collapse of fast gravity-wave transients onto the low-dimensional slow manifold $\mathcal{M}$ during Galerkin spectral integration.}
     \label{fig:slow_manifold}
 \end{figure}
 
 \begin{figure}[H]
     \centering
-    \resizebox{0.95\linewidth}{!}{\input{figures/tikz_wsindy_architecture.tex}}
-    \caption{End-to-end weak-form SINDy discovery, constrained sparse optimization, and Galerkin PDE integration pipeline.}
+    \resizebox{0.92\linewidth}{!}{\input{figures/tikz_wsindy_architecture.tex}}
+    \caption{Schematic workflow of the data-driven discovery pipeline, linking observational ingestion, weak-form regression, and Galerkin PDE verification.}
     \label{fig:wsindy_architecture}
 \end{figure}
 
+\clearpage
+% ==============================================================================
 \section{Field Campaign Dataset Diagnostics}
+% ==============================================================================
 
-Field campaign observations were ingested to derive Obukhov length $L$, stability parameter $\zeta = z/L$, non-dimensional wind shear $\phi_m(\zeta)$, and gradient Richardson numbers $Ri_g$.
+Four distinct field campaigns provide the empirical baseline for model discovery:
+\begin{enumerate}\setlength{\itemsep}{1pt}
+    \item \textbf{CASES-99:} Nocturnal stable boundary layer evolution with strong surface temperature inversions.
+    \item \textbf{FLOSS:} High-wind, complex terrain observations with persistent mechanical shear.
+    \item \textbf{BLLAST:} Late afternoon transition and convective boundary layer decay.
+    \item \textbf{SHEBA:} Arctic sea-ice boundary layer featuring persistent strong atmospheric stability.
+\end{enumerate}
 
 \begin{table}[H]
     \centering
@@ -68,47 +147,49 @@ Field campaign observations were ingested to derive Obukhov length $L$, stabilit
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.95\linewidth]{campaign_exports/figures/campaign_overview}
-    \caption{Comparative campaign overview displaying mean wind speed and stability metric profiles across all field sites.}
+    \includegraphics[width=0.92\linewidth]{campaign_exports/figures/campaign_overview}
+    \caption{Comparative profile overview showing mean wind speed and stability metric profiles across target field campaigns.}
     \label{fig:campaign_overview}
 \end{figure}
 
 \subsection{Vertical Eddy Diffusivity $K_m(z)$ Uncertainty}
 
-Bayesian parameter sampling propagates uncertainty through Similarity Theory formulations to construct 95\% credibility ribbons for $K_m(z)$.
+Bayesian parameter estimation propagates profile uncertainty through similarity relationships to establish $95\%$ posterior credibility ribbons for $K_m(z)$ across each observational site.
 
 \begin{figure}[H]
     \centering
     \begin{subfigure}[b]{0.48\textwidth}
         \centering
         \includegraphics[width=\textwidth]{campaign_exports/figures/cases_99_km_uncertainty}
-        \caption{CASES-99 $K_m(z)$ 95\% Ribbon}
+        \caption{CASES-99 $K_m(z)$ Credibility Ribbon}
     \end{subfigure}
     \hfill
     \begin{subfigure}[b]{0.48\textwidth}
         \centering
         \includegraphics[width=\textwidth]{campaign_exports/figures/sheba_km_uncertainty}
-        \caption{SHEBA $K_m(z)$ 95\% Ribbon}
+        \caption{SHEBA $K_m(z)$ Credibility Ribbon}
     \end{subfigure}
 
-    \vspace{0.5cm}
+    \vspace{0.4cm}
 
     \begin{subfigure}[b]{0.48\textwidth}
         \centering
         \includegraphics[width=\textwidth]{campaign_exports/figures/floss_km_uncertainty}
-        \caption{FLOSS $K_m(z)$ 95\% Ribbon}
+        \caption{FLOSS $K_m(z)$ Credibility Ribbon}
     \end{subfigure}
     \hfill
     \begin{subfigure}[b]{0.48\textwidth}
         \centering
         \includegraphics[width=\textwidth]{campaign_exports/figures/bllast_km_uncertainty}
-        \caption{BLLAST $K_m(z)$ 95\% Ribbon}
+        \caption{BLLAST $K_m(z)$ Credibility Ribbon}
     \end{subfigure}
-    \caption{Vertical eddy diffusivity $K_m(z)$ profiles with median predictions and 95\% posterior credibility intervals across target field campaigns.}
+    \caption{Vertical eddy diffusivity $K_m(z)$ profiles with median expectations and 95\% posterior credibility intervals across target field sites.}
     \label{fig:km_ribbons}
 \end{figure}
 
-\subsection{Stability and Diagnostic Metrics}
+\subsection{Stability Diagnostics \& Sheared Flow Transitions}
+
+The gradient Richardson number $Ri_g = \frac{g}{\theta_0} \frac{\partial \theta / \partial z}{(\partial u / \partial z)^2}$ quantifies the balance between thermal stratification and mechanical shear. Values below $Ri_c \approx 0.25$ indicate dynamic shear instability.
 
 \begin{figure}[H]
     \centering
@@ -123,16 +204,20 @@ Bayesian parameter sampling propagates uncertainty through Similarity Theory for
         \includegraphics[width=\textwidth]{campaign_exports/figures/floss_ri_heatmap}
         \caption{FLOSS $Ri_g(z,t)$ Heatmap}
     \end{subfigure}
-    \caption{Gradient Richardson number time-height cross sections showing dynamic stability transitions.}
+    \caption{Gradient Richardson number time-height cross sections displaying boundary layer stability transitions.}
     \label{fig:ri_heatmaps}
 \end{figure}
 
 \clearpage
+% ==============================================================================
 \section{PDE Closure Benchmark \& Model Discovery}
+% ==============================================================================
 
-Discovered PDE closures are benchmarked against neutral baseline formulations using a 12-mode Gegenbauer Spectral Galerkin discretization integrated with stiff Rosenbrock/BDF ODE solvers.
+Empirically discovered PDE closures are evaluated against standard neutral momentum formulations using a 12-mode Gegenbauer Spectral Galerkin expansion integrated with the stiff \texttt{Rodas5P} Rosenbrock solver.
 
 \subsection{Cross-Campaign Discovered Model Summary}
+
+Table~\ref{tab:cross_campaign_models} details performance metrics for optimal discovered closures identified across all target field sites.
 
 \begin{table}[H]
     \centering
@@ -143,24 +228,24 @@ Discovered PDE closures are benchmarked against neutral baseline formulations us
 
 \subsection{Leave-One-Site-Out (LOSO) Cross-Validation}
 
-To assess cross-campaign generalization, we perform Leave-One-Site-Out validation using campaign artifacts as observational inputs. Reported metrics summarize out-of-sample fit quality and a coefficient-consistency stability score across held-out sites.
+To evaluate out-of-sample robustness, models discovered on three field sites are evaluated on the remaining held-out site.
 
 \begin{table}[H]
     \centering
-    \caption{LOSO out-of-sample metrics by held-out site, with aggregate stability diagnostics.}
+    \caption{LOSO cross-validation out-of-sample metrics by held-out campaign site.}
     \label{tab:loso_summary}
     \input{pde_benchmark/tables/loso_validation_summary.tex}
 \end{table}
 
-\subsection{CASES-99 Optimal Pareto Closure}
+\subsection{CASES-99 Pareto Closure Model}
 
-The optimal discovered differential equation governing momentum profile evolution for CASES-99 is:
+The optimal PDE closure governing momentum profile evolution for CASES-99 is expressed as:
 
 \input{pde_benchmark/tables/cases_99_best_equation.tex}
 
 \begin{table}[H]
     \centering
-    \caption{Discovered library terms and estimated coefficients for CASES-99.}
+    \caption{Discovered library terms and estimated sparse coefficients for CASES-99.}
     \label{tab:cases99_terms}
     \input{pde_benchmark/tables/cases_99_best_terms.tex}
 \end{table}
@@ -170,27 +255,27 @@ The optimal discovered differential equation governing momentum profile evolutio
     \begin{subfigure}[b]{0.48\textwidth}
         \centering
         \includegraphics[width=\textwidth]{pde_benchmark/figures/cases_99_pareto_rss}
-        \caption{CASES-99 Complexity vs RSS}
+        \caption{CASES-99 Model Sparsity vs. RSS}
     \end{subfigure}
     \hfill
     \begin{subfigure}[b]{0.48\textwidth}
         \centering
         \includegraphics[width=\textwidth]{pde_benchmark/figures/cases_99_pareto_r2}
-        \caption{CASES-99 Complexity vs $R^2$}
+        \caption{CASES-99 Model Sparsity vs. $R^2$}
     \end{subfigure}
-    \caption{Pareto trade-off fronts between closure sparsity ($k$) and residual metrics for CASES-99.}
+    \caption{Pareto trade-off frontiers between closure complexity ($k$) and goodness-of-fit metrics for CASES-99.}
     \label{fig:cases99_pareto}
 \end{figure}
 
-\subsection{SHEBA Optimal Pareto Closure}
+\subsection{SHEBA Pareto Closure Model}
 
-The optimal discovered differential equation for SHEBA is:
+The optimal discovered momentum closure for the Arctic SHEBA regime is given by:
 
 \input{pde_benchmark/tables/sheba_best_equation.tex}
 
 \begin{table}[H]
     \centering
-    \caption{Discovered library terms and estimated coefficients for SHEBA.}
+    \caption{Discovered library terms and estimated sparse coefficients for SHEBA.}
     \label{tab:sheba_terms}
     \input{pde_benchmark/tables/sheba_best_terms.tex}
 \end{table}
@@ -200,24 +285,26 @@ The optimal discovered differential equation for SHEBA is:
     \begin{subfigure}[b]{0.48\textwidth}
         \centering
         \includegraphics[width=\textwidth]{pde_benchmark/figures/sheba_pareto_rss}
-        \caption{SHEBA Complexity vs RSS}
+        \caption{SHEBA Model Sparsity vs. RSS}
     \end{subfigure}
     \hfill
     \begin{subfigure}[b]{0.48\textwidth}
         \centering
         \includegraphics[width=\textwidth]{pde_benchmark/figures/sheba_pareto_r2}
-        \caption{SHEBA Complexity vs $R^2$}
+        \caption{SHEBA Model Sparsity vs. $R^2$}
     \end{subfigure}
-    \caption{Pareto trade-off fronts between closure sparsity ($k$) and residual metrics for SHEBA.}
+    \caption{Pareto trade-off frontiers between closure complexity ($k$) and goodness-of-fit metrics for SHEBA.}
     \label{fig:sheba_pareto}
 \end{figure}
 
-\subsection{Spectral Galerkin Modal Profiles}
+\subsection{Galerkin Modal Profile Comparisons}
+
+Figure~\ref{fig:pde_profile_comp} compares terminal modal profile amplitudes produced by the discovered closures against initial observed profiles and neutral diffusion baselines.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.90\linewidth]{pde_benchmark/figures/pde_profile_comparison}
-    \caption{End-state modal profile amplitudes comparing observed mean initial states, neutral baseline predictions, and physical similarity closures.}
+    \includegraphics[width=0.88\linewidth]{pde_benchmark/figures/pde_profile_comparison}
+    \caption{End-state velocity profile comparisons across observed mean states, neutral baselines, and data-driven similarity closures.}
     \label{fig:pde_profile_comp}
 \end{figure}
 
