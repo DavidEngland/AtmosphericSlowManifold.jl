@@ -1,0 +1,91 @@
+\documentclass[tikz,border=10pt]{standalone}
+\usepackage{amsmath,amssymb}
+\usepackage{xcolor}
+
+\definecolor{navyblue}{RGB}{0,32,96}
+\definecolor{tealblue}{RGB}{0,128,128}
+\definecolor{darkslate}{RGB}{40,50,60}
+\definecolor{boxbg}{RGB}{248,249,252}
+\definecolor{accentorange}{RGB}{215,85,25}
+
+\usetikzlibrary{shapes.geometric,arrows.meta,positioning,shadows.blur,calc}
+
+\begin{document}
+\begin{tikzpicture}[
+    node distance=1.6cm and 1.2cm,
+    >=Stealth,
+    block/.style={
+        draw=navyblue,
+        fill=boxbg,
+        ultra thick,
+        rectangle,
+        rounded corners=4pt,
+        align=center,
+        inner sep=8pt,
+        font=\sffamily\small,
+        blur shadow={shadow blur steps=5, shadow blur extra rounded corners=4pt, shadow xshift=1pt, shadow yshift=-2pt}
+    },
+    process/.style={
+        draw=tealblue,
+        fill=tealblue!8,
+        thick,
+        rectangle,
+        rounded corners=3pt,
+        align=center,
+        inner sep=7pt,
+        font=\sffamily\small
+    },
+    arrow/.style={->, ultra thick, color=navyblue},
+    dasharrow/.style={->, thick, dashed, color=accentorange}
+]
+
+    % Nodes
+    \node[block] (data) {
+        \textbf{ABL Boundary Layer Data}\\
+        $\mathbf{u}(z,t), \quad Ri_g(z,t), \quad \zeta = z/L$\\
+        \footnotesize (CASES-99, SHEBA, FLOSS, BLLAST)
+    };
+
+    \node[process, right=of data] (wsindy) {
+        \textbf{Weak-Form Integration (WSINDy)}\\
+        $\langle \partial_t u, \phi_j \rangle = \left\langle \mathcal{N}\left(u, \frac{\partial u}{\partial z}, K_m\right), \phi_j \right\rangle$\\
+        \footnotesize Gegenbauer Test Functions $\phi_j(z,t)$
+    };
+
+    \node[block, right=of wsindy] (regress) {
+        \textbf{Constrained STLMS Regression}\\
+        $\min_{\mathbf{\Xi}} \|\mathbf{G}\mathbf{\Xi} - \mathbf{V}\|_2^2 + \lambda \|\mathbf{\Xi}\|_1$\\
+        \textbf{Physical Bounds:} $\nu_m \ge 0, \quad K_m(\zeta) \ge 0$
+    };
+
+    \node[process, below=of regress] (pde) {
+        \textbf{Discovered PDE Closure}\\
+        $\frac{\partial u}{\partial t} = \frac{\partial}{\partial z}\left[K_m(z, Ri_g)\frac{\partial u}{\partial z}\right] + f_{\text{coriolis}}$
+    };
+
+    \node[block, left=of pde] (galerkin) {
+        \textbf{Spectral Galerkin Benchmark}\\
+        $\dot{a}_k(t) = \mathbf{F}_k(a_1, \dots, a_{12})$\\
+        \footnotesize Mass Matrix System $M \dot{\mathbf{a}} = \mathbf{R}(\mathbf{a})$
+    };
+
+    \node[process, left=of galerkin] (solver) {
+        \textbf{Stiff ODE Integration}\\
+        \texttt{Rodas5P(autodiff=true)}\\
+        \footnotesize Error Bounds: $\text{tol} \le 10^{-8}$
+    };
+
+    % Paths
+    \draw[arrow] (data) -- (wsindy);
+    \draw[arrow] (wsindy) -- (regress);
+    \draw[arrow] (regress) -- (pde);
+    \draw[arrow] (pde) -- (galerkin);
+    \draw[arrow] (galerkin) -- (solver);
+
+    % Cross-Validation Feedback Loop
+    \draw[dasharrow] (solver.north) .. controls ($(solver.north)+(0,1.2)$) and ($(wsindy.south)+(0,-1.2)$) .. (wsindy.south)
+        node[pos=0.5, fill=white, inner sep=2pt, font=\scriptsize\sffamily\bfseries, color=accentorange]
+        {LOSO Cross-Validation Metric Evaluation ($R^2$, RSS)};
+
+\end{tikzpicture}
+\end{document}

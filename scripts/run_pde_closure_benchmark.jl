@@ -23,6 +23,7 @@ const ABSTOL_BENCHMARK = 1e-8
 const SAVEAT_BENCHMARK = 300.0
 const DT_INITIAL_BENCHMARK = 1.0
 const MAXITERS_BENCHMARK = 10^7
+const NONLINEAR_SCALE_BENCHMARK = 0.1
 
 mkpath(FIG_DIR)
 mkpath(TABLE_DIR)
@@ -74,9 +75,48 @@ function campaign_mean_wind(raw_csv::String)
     return 1.0
 end
 
-function rmse(a::Vector{Float64}, b::Vector{Float64})
+function campaign_observed_modes(raw_csv::String, n_modes::Int, lambda::Float64)
+    df = CSV.read(raw_csv, DataFrame)
+    rename!(df, Symbol.(names(df)))
+    modes = zeros(Float64, n_modes)
+
+    modal_columns = Tuple{Int, Symbol}[]
+    for name in propertynames(df)
+        matched = match(r"^a_(\d+)$", String(name))
+        matched === nothing || push!(modal_columns, (parse(Int, matched.captures[1]), name))
+    end
+    sort!(modal_columns; by = first)
+
+    if !isempty(modal_columns)
+        for (mode_index, name) in modal_columns
+            mode_index >= n_modes && continue
+            modes[mode_index + 1] = finite_mean(to_f64.(df[!, name]))
+        end
+        all(isfinite, modes) && return modes, "campaign_modal_coefficients"
+    end
+
+    if all(hasproperty(df, name) for name in (:ws_lo, :ws_hi))
+        wind_lo = finite_mean(to_f64.(df[!, :ws_lo]))
+        wind_hi = finite_mean(to_f64.(df[!, :ws_hi]))
+        if isfinite(wind_lo) && isfinite(wind_hi)
+            modes[1] = (wind_lo + wind_hi) / 2
+            n_modes >= 2 && (modes[2] = (wind_hi - wind_lo) / (4 * lambda))
+            return modes, "two_level_linear_profile"
+        end
+    end
+
+    modes[1] = campaign_mean_wind(raw_csv)
+    return modes, "campaign_mean_wind"
+end
+
+function rmse(a::AbstractVector{<:Real}, b::AbstractVector{<:Real})
     length(a) == length(b) || throw(DimensionMismatch("Vectors must match for RMSE."))
     return sqrt(mean((a .- b) .^ 2))
+end
+
+function residual_norm(a::AbstractVector{<:Real}, b::AbstractVector{<:Real})
+    length(a) == length(b) || throw(DimensionMismatch("Vectors must match for residual norm."))
+    return sqrt(sum(abs2, a .- b))
 end
 
 finite_or_missing(x::Real) = isfinite(x) ? Float64(x) : nothing
@@ -85,12 +125,12 @@ function finite_or_na_str(x::Real; digits::Int = 4)
     return isfinite(x) ? string(round(Float64(x); digits = digits)) : "NA"
 end
 
-function r2_score(pred::Vector{Float64}, truth::Vector{Float64})
+function r2_score(pred::AbstractVector{<:Real}, truth::AbstractVector{<:Real})
     length(pred) == length(truth) || throw(DimensionMismatch("Vectors must match for R2."))
     tbar = mean(truth)
     rss = sum((pred .- truth) .^ 2)
     tss = sum((truth .- tbar) .^ 2)
-    return tss <= 1e-12 ? 0.0 : max(0.0, 1.0 - rss / tss)
+    return tss <= 1e-12 ? (rss <= 1e-12 ? 1.0 : 0.0) : 1.0 - rss / tss
 end
 
 function write_text(path::String, content::String)
@@ -168,13 +208,11 @@ end
 
 function model_from_profile(
     target::Symbol,
-    coeff_u::Float64,
-    coeff_du::Float64,
+    mean_diffusivity::Float64,
     residual_norm::Float64,
 )
     terms = OperatorTerm{Float64}[
-        OperatorTerm{Float64}(coeff_u, BasisOperator[BasisOperator(StateVariable(:u), 1.0)]),
-        OperatorTerm{Float64}(coeff_du, BasisOperator[BasisOperator(SpatialDerivative(:u, 1), 1.0)]),
+        OperatorTerm{Float64}(mean_diffusivity, BasisOperator[BasisOperator(SpatialDerivative(:u, 2), 1.0)]),
     ]
     return DiscoveredModel{Float64}(target, terms, max(residual_norm, 1e-12), length(terms))
 end
@@ -236,6 +274,7 @@ function solve_with_fallback(pde_sys, closure, disc, tspan, u0)
         (name = "RadauIIA5", alg = RadauIIA5()),
     )
 
+    failures = String[]
     for candidate in solver_chain
         try
             sol = solve_scm(
@@ -257,11 +296,13 @@ function solve_with_fallback(pde_sys, closure, disc, tspan, u0)
             if SciMLBase.successful_retcode(sol)
                 return sol, candidate.name, true
             end
-        catch
-            # Continue through fallback chain when a solver is incompatible.
+            push!(failures, "$(candidate.name): $(sol.retcode)")
+        catch err
+            push!(failures, "$(candidate.name): $(sprint(showerror, err))")
         end
     end
 
+    @warn "All stiff solver candidates failed" failures
     return nothing, "failed", false
 end
 
@@ -279,12 +320,19 @@ function run_case(campaign::String, payload)
         z_ref = closure.z_ref,
     )
 
-    disc = SpectralBLGalerkin(n_modes = N_MODES_BENCHMARK, lambda = 0.75, H = 100.0, enable_nonlinear = true)
+    disc = SpectralBLGalerkin(
+        n_modes = N_MODES_BENCHMARK,
+        lambda = 0.75,
+        H = 100.0,
+        enable_nonlinear = true,
+        nonlinear_scale = NONLINEAR_SCALE_BENCHMARK,
+    )
     tspan = (0.0, 12.0 * 3600.0)
 
+    observed, observation_source = campaign_observed_modes(payload.raw, disc.n_modes, disc.lambda)
     mean_wind = campaign_mean_wind(payload.raw)
-    mean_wind = isfinite(mean_wind) ? mean_wind : 1.0
-    u0 = fill(mean_wind, disc.n_modes)
+    mean_wind = isfinite(mean_wind) ? mean_wind : observed[1]
+    u0 = copy(observed)
 
     pde_phys = build_pde_system(closure; z_top = 100.0, t_end = tspan[2], coriolis = 0.0, v_geostrophic = 0.0, radiation = 0.0)
     pde_base = build_pde_system(baseline; z_top = 100.0, t_end = tspan[2], coriolis = 0.0, v_geostrophic = 0.0, radiation = 0.0)
@@ -292,18 +340,20 @@ function run_case(campaign::String, payload)
     sol_phys, solver_phys, ok_phys = solve_with_fallback(pde_phys, closure, disc, tspan, u0)
     sol_base, solver_base, ok_base = solve_with_fallback(pde_base, baseline, disc, tspan, u0)
 
-    final_phys = ok_phys ? Float64.(sol_phys.u[end]) : copy(u0)
-    final_base = ok_base ? Float64.(sol_base.u[end]) : copy(u0)
+    final_phys = ok_phys ? Float64.(sol_phys.u[end]) : fill(NaN, disc.n_modes)
+    final_base = ok_base ? Float64.(sol_base.u[end]) : fill(NaN, disc.n_modes)
 
     z_grid = collect(range(2.0, 100.0; length = disc.n_modes))
-    K_buffer = zeros(Float64, disc.n_modes)
-    evaluate_diffusivity_profile!(K_buffer, closure, z_grid)
+    K_phys = zeros(Float64, disc.n_modes)
+    K_base = zeros(Float64, disc.n_modes)
+    evaluate_diffusivity_profile!(K_phys, closure, z_grid)
+    evaluate_diffusivity_profile!(K_base, baseline, z_grid)
 
-    r2_phys = ok_phys ? r2_score(final_phys, u0) : -Inf
-    r2_base = ok_base ? r2_score(final_base, u0) : -Inf
+    r2_phys = ok_phys ? r2_score(final_phys, observed) : -Inf
+    r2_base = ok_base ? r2_score(final_base, observed) : -Inf
 
-    baseline_model = model_from_profile(:u, mean(final_base), 0.0, ok_base ? rmse(final_base, u0) : Inf)
-    physical_model = model_from_profile(:u, mean(final_phys), maximum(K_buffer) / 1000.0, ok_phys ? rmse(final_phys, u0) : Inf)
+    baseline_model = model_from_profile(:u, mean(K_base), ok_base ? residual_norm(final_base, observed) : Inf)
+    physical_model = model_from_profile(:u, mean(K_phys), ok_phys ? residual_norm(final_phys, observed) : Inf)
 
     candidates = [baseline_model, physical_model]
     closure_labels = ["baseline", "physical"]
@@ -328,19 +378,20 @@ function run_case(campaign::String, payload)
 
     return (
         campaign = campaign,
+        observation_source = observation_source,
         mean_wind = mean_wind,
-        rmse_physical = ok_phys ? rmse(final_phys, u0) : Inf,
-        rmse_baseline = ok_base ? rmse(final_base, u0) : Inf,
+        rmse_physical = ok_phys ? rmse(final_phys, observed) : Inf,
+        rmse_baseline = ok_base ? rmse(final_base, observed) : Inf,
         r2_physical = r2_phys,
         r2_baseline = r2_base,
-        max_km = maximum(K_buffer),
+        max_km = maximum(K_phys),
         solver_physical = solver_phys,
         solver_baseline = solver_base,
         phys_retcode = ok_phys ? string(sol_phys.retcode) : "solve_failed",
         baseline_retcode = ok_base ? string(sol_base.retcode) : "solve_failed",
         final_phys = final_phys,
         final_base = final_base,
-        observed = u0,
+        observed = observed,
         candidate_models = candidates,
         closure_labels = closure_labels,
         aic_vals = aic_vals,
@@ -351,6 +402,7 @@ function run_case(campaign::String, payload)
         pareto_r2 = pareto_r2,
         best_model = best_model,
         best_label = best_label,
+        best_idx = best_idx,
     )
 end
 
@@ -367,6 +419,7 @@ for (campaign, payload) in CAMPAIGNS
 
     push!(rows, (
         campaign = result.campaign,
+        observation_source = result.observation_source,
         mean_wind = result.mean_wind,
         rmse_physical = result.rmse_physical,
         rmse_baseline = result.rmse_baseline,
@@ -376,8 +429,8 @@ for (campaign, payload) in CAMPAIGNS
         phys_retcode = result.phys_retcode,
         baseline_retcode = result.baseline_retcode,
         best_candidate = result.best_label,
-        best_aic = minimum(result.aic_vals),
-        best_bic = minimum(result.bic_vals),
+        best_aic = result.aic_vals[result.best_idx],
+        best_bic = result.bic_vals[result.best_idx],
     ))
 
     candidate_rows = Any[]
@@ -399,7 +452,11 @@ for (campaign, payload) in CAMPAIGNS
     write_text(joinpath(TABLE_DIR, "$(camp_sym)_best_equation.tex"), string("\\[\n", eq_tex, "\n\\]\n"))
     write_text(
         joinpath(TABLE_DIR, "$(camp_sym)_best_terms.tex"),
-        latex_term_table(result.best_model; r2 = maximum(result.r2_vals), residual_norm = result.best_model.residual_norm),
+        latex_term_table(
+            result.best_model;
+            r2 = result.r2_vals[result.best_idx],
+            residual_norm = result.best_model.residual_norm,
+        ),
     )
 
     complexities = [m.sparsity_level for m in result.candidate_models]
@@ -423,19 +480,21 @@ for (campaign, payload) in CAMPAIGNS
     )
 
     best_models_by_campaign[camp_sym] = result.best_model
-    r2_best_by_campaign[camp_sym] = maximum(result.r2_vals)
+    r2_best_by_campaign[camp_sym] = result.r2_vals[result.best_idx]
     residual_best_by_campaign[camp_sym] = result.best_model.residual_norm
 
     summary_campaigns[campaign] = Dict(
         "n_candidates" => length(result.candidate_models),
+        "n_observations" => length(result.observed),
         "n_pareto_rss" => length(result.pareto_rss.indices),
         "n_pareto_r2" => length(result.pareto_r2.indices),
         "best_candidate" => result.best_label,
+        "observation_source" => result.observation_source,
         "best_model" => Dict(
             "terms" => length(result.best_model.terms),
             "residual_norm" => finite_or_missing(result.best_model.residual_norm),
-            "aic" => finite_or_missing(minimum(result.aic_vals)),
-            "bic" => finite_or_missing(minimum(result.bic_vals)),
+            "aic" => finite_or_missing(result.aic_vals[result.best_idx]),
+            "bic" => finite_or_missing(result.bic_vals[result.best_idx]),
             "latex" => eq_tex,
         ),
         "candidates" => candidate_rows,
@@ -500,6 +559,12 @@ end
 summary_data = Dict(
     "generated_at" => string(Dates.now()),
     "n_campaigns" => length(CAMPAIGNS),
+    "configuration" => Dict(
+        "n_modes" => N_MODES_BENCHMARK,
+        "nonlinear_scale" => NONLINEAR_SCALE_BENCHMARK,
+        "duration_seconds" => 12.0 * 3600.0,
+        "metric_reference" => "final modal state versus campaign-derived observed modal profile",
+    ),
     "campaigns" => summary_campaigns,
     "loso" => Dict(
         "n_results" => length(loso_summary.results),
@@ -520,7 +585,7 @@ for (j, campaign) in enumerate(sort(collect(keys(profiles))))
         mode_idx,
         prof.observed,
         lw = 2,
-        label = "Observed mean init",
+        label = "Observed modal profile",
         xlabel = "Mode Index",
         ylabel = "Amplitude",
         title = "$(campaign) Modal Profile",

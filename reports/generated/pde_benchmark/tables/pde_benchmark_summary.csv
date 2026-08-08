@@ -1,3 +1,3 @@
-campaign,mean_wind,rmse_physical,rmse_baseline,r2_physical,r2_baseline,max_km,phys_retcode,baseline_retcode,best_candidate,best_aic,best_bic
-SHEBA,4.97758468983722,Inf,Inf,-Inf,-Inf,77.42915098018777,solve_failed,solve_failed,baseline,Inf,Inf
-CASES-99,8.409815194987601,Inf,Inf,-Inf,-Inf,4.856548647083449,solve_failed,solve_failed,baseline,Inf,Inf
+campaign,observation_source,mean_wind,rmse_physical,rmse_baseline,r2_physical,r2_baseline,max_km,phys_retcode,baseline_retcode,best_candidate,best_aic,best_bic
+SHEBA,two_level_linear_profile,4.97758468983722,0.07950652506889139,0.07950652454929953,0.9966365248210736,0.9966365248650356,77.42915098018777,Success,Success,baseline,-58.76598858128519,-58.28108193149719
+CASES-99,campaign_modal_coefficients,8.409815194987601,0.9228806987898991,0.9228806986067469,-0.2289491011978535,-0.22894910071006613,4.856548647083449,Success,Success,baseline,0.07387263726841975,0.5587792870564201

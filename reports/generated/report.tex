@@ -11,6 +11,8 @@
 \usepackage{subcaption}
 \usepackage{hyperref}
 \usepackage{microtype}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,calc,decorations.markings,shadows.blur,shapes.geometric,positioning}
 
 \hypersetup{
     colorlinks=true,
@@ -34,6 +36,24 @@ This report synthesizes field campaign diagnostics (CASES-99, FLOSS, BLLAST, and
 
 \tableofcontents
 \clearpage
+
+\section{Theoretical Framework \& Discovery Pipeline}
+
+Figure~\ref{fig:slow_manifold} illustrates the fast gravity wave phase-space decay onto the slow manifold $\mathcal{M}$, while Figure~\ref{fig:wsindy_architecture} outlines the equation discovery loop.
+
+\begin{figure}[H]
+    \centering
+    \resizebox{0.85\linewidth}{!}{\input{figures/tikz_slow_manifold.tex}}
+    \caption{Phase-space collapse onto the lower-dimensional slow manifold $\mathcal{M}$ during spectral Galerkin integration.}
+    \label{fig:slow_manifold}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \resizebox{0.95\linewidth}{!}{\input{figures/tikz_wsindy_architecture.tex}}
+    \caption{End-to-end weak-form SINDy discovery, constrained sparse optimization, and Galerkin PDE integration pipeline.}
+    \label{fig:wsindy_architecture}
+\end{figure}
 
 \section{Field Campaign Dataset Diagnostics}
 

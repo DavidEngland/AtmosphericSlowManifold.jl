@@ -1,0 +1,60 @@
+# ==========================================
+# Operating System & Editor Files
+# ==========================================
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.vscode/
+.idea/
+*.swp
+*~
+*.tmp
+
+# ==========================================
+# Julia Build & Coverage Artifacts
+# ==========================================
+*.jl.cov
+*.jl.*.cov
+*.jl.mem
+docs/build/
+
+# Environment manifest (uncomment if this is a library rather than an application)
+# Manifest.toml
+
+# ==========================================
+# LaTeX Output & Intermediate Build Files
+# ==========================================
+*.aux
+*.bbl
+*.blg
+*.fdb_latexmk
+*.fls
+*.glg
+*.glo
+*.gls
+*.idx
+*.ilg
+*.ind
+*.ist
+*.lof
+*.log
+*.lot
+*.out
+*.toc
+*.synctex.gz
+!templates/
+!templates/*.tex
+
+# ==========================================
+# Generated Campaign Exports & PDE Benchmarks
+# ==========================================
+reports/generated/campaign_exports/
+reports/generated/pde_benchmark/
+reports/generated/report.*
+
+# Generated Data & Plot Files
+*.nc
+*.csv
+*.json
+*.png
