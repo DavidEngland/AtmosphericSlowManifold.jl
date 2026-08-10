@@ -6,6 +6,10 @@ const ROOT = joinpath(pwd(), "reports", "generated", "pde_benchmark")
 const SUMMARY_JSON = joinpath(ROOT, "benchmark_summary.json")
 const SUMMARY_CSV = joinpath(ROOT, "tables", "pde_benchmark_summary.csv")
 const EXPECTED_CAMPAIGNS = Set(["CASES-99", "SHEBA"])
+const EQUATION_FILES = Dict(
+    "CASES-99" => joinpath(ROOT, "tables", "cases_99_best_equation.tex"),
+    "SHEBA" => joinpath(ROOT, "tables", "sheba_best_equation.tex"),
+)
 
 function check(condition::Bool, message::String)
     println(condition ? "[ok]   " : "[fail] ", message)
@@ -13,6 +17,15 @@ function check(condition::Bool, message::String)
 end
 
 finite_number(value) = value isa Number && isfinite(Float64(value))
+
+function has_display_math_environment(content::AbstractString)
+    stripped = strip(content)
+    return (
+        (startswith(stripped, "\\[") && endswith(stripped, "\\]")) ||
+        (startswith(stripped, "\\begin{equation}") && endswith(stripped, "\\end{equation}")) ||
+        (startswith(stripped, "\\begin{equation*}") && endswith(stripped, "\\end{equation*}"))
+    )
+end
 
 function approximately_equal(a, b; rtol::Float64 = 1e-9, atol::Float64 = 1e-10)
     return finite_number(a) && finite_number(b) && isapprox(Float64(a), Float64(b); rtol = rtol, atol = atol)
@@ -106,6 +119,18 @@ function main()
     ok &= check(all(table.baseline_retcode .== "Success"), "all baseline solves succeeded")
     ok &= check(all(isfinite, table.best_aic), "all selected AIC values are finite")
     ok &= check(all(isfinite, table.best_bic), "all selected BIC values are finite")
+
+    for campaign in sort(collect(EXPECTED_CAMPAIGNS))
+        equation_path = EQUATION_FILES[campaign]
+        exists = isfile(equation_path)
+        ok &= check(exists, "$(campaign) best-equation LaTeX exists")
+        if exists
+            ok &= check(
+                has_display_math_environment(read(equation_path, String)),
+                "$(campaign) best-equation LaTeX uses an explicit display-math environment",
+            )
+        end
+    end
 
     if ok
         println("PDE benchmark validation passed.")

@@ -79,7 +79,7 @@ using LinearAlgebra
     @test length(adv_rhs) == 4
     @test length(diff_rhs) == 4
     @test length(nl_rhs) == 4
-    @test isapprox(LinearAlgebra.norm(nl_rhs), LinearAlgebra.norm(adv_rhs .+ diff_rhs); atol = 1e-10)
+    @test isapprox(LinearAlgebra.norm(nl_rhs), LinearAlgebra.norm(-adv_rhs .+ diff_rhs); atol = 1e-10)
     @test LinearAlgebra.norm(nl_rhs) > 0.0
 
     adv_only_rhs = AtmosphericSlowManifold._spectral_nonlinear_rhs(tensors, a0, 0.5, 0.0)
@@ -129,6 +129,6 @@ end
     @test length(budget.diffusion) == 6
     @test length(budget.total) == 6
 
-    expected_total = budget.linear .- (1.0 * 0.8 .* budget.advection) .- (1.0 * 1.2 .* budget.diffusion)
+    expected_total = budget.linear .- (1.0 * 0.8 .* budget.advection) .+ (1.0 * 1.2 .* budget.diffusion)
     @test budget.total ≈ expected_total
 end

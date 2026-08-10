@@ -242,7 +242,13 @@ Empirically discovered PDE closures are evaluated against standard neutral momen
 
 \subsection{Why a Gegenbauer Basis?}
 
-Gegenbauer polynomials $C_n^{(\lambda)}(x)$ form an orthogonal family on $[-1,1]$ under the weight $(1-x^2)^{\lambda-1/2}$. The parameter $\lambda$ continuously connects commonly used spectral families and permits the basis weighting to be adapted without changing the Galerkin architecture. Here $\lambda=0.75$ and 12 modes provide a compact representation of campaign wind profiles while retaining analytical mass, stiffness, and nonlinear interaction operators. The finite truncation is a modeling choice rather than a demonstrated convergence limit; systematic mode-refinement studies are future work.
+Gegenbauer polynomials $C_n^{(\lambda)}(x)$ form an orthogonal family on $[-1,1]$ under the weight $w_\lambda(x)=(1-x^2)^{\lambda-1/2}$. The benchmark uses the affine physical map
+\begin{equation}
+    z=\frac{H}{2}(x+1), \qquad H=100\,\mathrm{m},
+\end{equation}
+with $\lambda=0.75$, so $w_{0.75}(x)=(1-x^2)^{1/4}$, and retains 12 modal coefficients. These are fixed benchmark parameters, not values selected by an optimization or convergence study. The mass, stiffness, and nonlinear interaction tensors are assembled numerically with 256 uniformly spaced trapezoidal quadrature nodes; the physical measure includes $dz=(H/2)\,dx$, and modal derivatives include $\partial_z=(2/H)\partial_x$.
+
+The weighted basis provides a compact common representation for campaign profiles and precomputed nonlinear contractions, but the present $\lambda=0.75$ endpoint-flux formulation is not yet a completed weighted-Sobolev boundary treatment. A compatible balanced-Neumann diagnostic gives a slope ratio of $1.0784$ rather than unity, while the constant-weight $\lambda=0.5$ control gives $1.0011$. The reported production benchmark nevertheless uses $\lambda=0.75$ consistently in profile initialization and time integration. The residual $7.84\%$ boundary-consistency discrepancy, mode refinement, and comparison with an unweighted or coordinate-stretched formulation remain explicit numerical limitations rather than demonstrated convergence results.
 
 \subsection{Cross-Campaign Discovered Model Summary}
 

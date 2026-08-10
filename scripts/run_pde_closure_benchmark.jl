@@ -5,6 +5,7 @@ using DataFrames
 using Dates
 using JSON3
 using Plots
+using Plots.Measures
 using Statistics
 using DifferentialEquations
 
@@ -576,7 +577,7 @@ open(SUMMARY_PATH, "w") do io
     JSON3.pretty(io, summary_data)
 end
 
-p = plot(layout = (1, 2), size = (1200, 500))
+p = plot(layout = (1, 2), size = (1200, 500), bottom_margin = 12mm, left_margin = 8mm)
 for (j, campaign) in enumerate(sort(collect(keys(profiles))))
     prof = profiles[campaign]
     mode_idx = collect(1:length(prof.observed))
@@ -590,7 +591,7 @@ for (j, campaign) in enumerate(sort(collect(keys(profiles))))
         ylabel = "Amplitude",
         title = "$(campaign) Modal Profile",
     )
-    plot!(p[j], mode_idx, prof.final_base, lw = 2, ls = :dash, label = "Neutral baseline")
+    plot!(p[j], mode_idx, prof.final_base, lw = 3.5, ls = :dash, alpha = 0.6, label = "Neutral baseline")
     plot!(p[j], mode_idx, prof.final_phys, lw = 2, label = "Physical closure")
 end
 

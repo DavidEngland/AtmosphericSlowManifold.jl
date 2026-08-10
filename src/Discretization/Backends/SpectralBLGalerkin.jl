@@ -136,7 +136,8 @@ function spectral_rhs!(
                 diff += tensors.diffusion_flux[k, i, j] * uij
             end
         end
-        du[k] -= adv_scale * adv + diff_scale * diff
+        du[k] -= adv_scale * adv
+        du[k] += diff_scale * diff
     end
     return du
 end
@@ -276,8 +277,28 @@ function _spectral_nonlinear_rhs(
     adv_scale::Float64,
     diff_scale::Float64,
 )
-    return _spectral_nonlinear_advection_rhs(tensors, a, adv_scale) .+
-           _spectral_nonlinear_diffusion_rhs(tensors, a, diff_scale)
+        return -_spectral_nonlinear_advection_rhs(tensors, a, adv_scale) .+
+            _spectral_nonlinear_diffusion_rhs(tensors, a, diff_scale)
+end
+
+function _spectral_nonlinear_jacobian!(
+    jacobian::AbstractMatrix{<:Real},
+    tensors::SpectralNonlinearTensors,
+    state::AbstractVector{<:Real},
+    adv_scale::Float64,
+    diff_scale::Float64,
+)
+    n = length(state)
+    fill!(jacobian, 0.0)
+    @inbounds for k in 1:n, l in 1:n, j in 1:n
+        jacobian[k, l] -= adv_scale * (
+            tensors.advection[k, l, j] + tensors.advection[k, j, l]
+        ) * state[j]
+        jacobian[k, l] += diff_scale * (
+            tensors.diffusion_flux[k, l, j] + tensors.diffusion_flux[k, j, l]
+        ) * state[j]
+    end
+    return jacobian
 end
 
 function _linear_modal_operator(
@@ -285,7 +306,7 @@ function _linear_modal_operator(
     K_m_profile::Union{Nothing,Vector{Float64}}=nothing,
     z_grid::Union{Nothing,Vector{Float64}}=nothing,
 )
-    M = _mass_matrix(disc.n_modes, disc.lambda)
+    M = _mass_matrix(disc.n_modes, disc.lambda, disc.H)
     K = _stiffness_matrix(disc.n_modes, disc.lambda, disc.H, K_m_profile, z_grid)
     return -(M \ K)
 end
@@ -312,7 +333,7 @@ function evaluate_modal_budget(
     s_adv = disc.enable_nonlinear ? (disc.nonlinear_scale * disc.advection_response_scale) : 0.0
     s_diff = disc.enable_nonlinear ? (disc.nonlinear_scale * disc.diffusivity_response_scale) : 0.0
 
-    f_tot = f_lin .- (s_adv .* f_adv) .- (s_diff .* f_diff)
+    f_tot = f_lin .- (s_adv .* f_adv) .+ (s_diff .* f_diff)
     return ModalBudgetDiagnostic(f_lin, f_adv, f_diff, f_tot)
 end
 
@@ -453,9 +474,11 @@ function precompute_nonlinear_tensors(disc::SpectralBLGalerkin; n_quad::Int=256)
     return SpectralNonlinearTensors(triple, advection, diffusion_flux)
 end
 
-function _mass_matrix(n_modes::Int, lambda::Float64; n_quad::Int=256)
+function _mass_matrix(n_modes::Int, lambda::Float64, H::Float64; n_quad::Int=256)
+    H > 0.0 || throw(ArgumentError("H must be positive."))
     x, w = _quad_nodes_weights(n_quad)
     M = zeros(n_modes, n_modes)
+    dzdx = 0.5 * H
     for i in 1:n_modes
         for j in 1:n_modes
             acc = 0.0
@@ -466,7 +489,7 @@ function _mass_matrix(n_modes::Int, lambda::Float64; n_quad::Int=256)
                 weight = (1.0 - xq^2)^(lambda - 0.5)
                 acc += _gegenbauerC(ni, lambda, xq) * _gegenbauerC(nj, lambda, xq) * weight * w[q]
             end
-            M[i, j] = acc
+            M[i, j] = dzdx * acc
         end
     end
     return M
@@ -548,7 +571,7 @@ function dispatch_solve(
     phi_z1 = _modal_basis_at_z(disc.n_modes, disc.lambda, z1_actual, disc.H)
     transfer_velocity = bulk_transfer_coeff * reference_wind_speed
 
-    M = _mass_matrix(disc.n_modes, disc.lambda)
+    M = _mass_matrix(disc.n_modes, disc.lambda, disc.H)
     K = _stiffness_matrix(disc.n_modes, disc.lambda, disc.H, workspace.K_m_buffer, workspace.z_grid)
     tensors = disc.enable_nonlinear ? precompute_nonlinear_tensors(disc) : nothing
     adv_scale = _mean_abs(workspace.K_m_buffer)
@@ -572,7 +595,6 @@ function dispatch_solve(
         n=disc.n_modes,
         nl=zeros(Float64, disc.n_modes),
         dnl=zeros(Float64, disc.n_modes, disc.n_modes),
-        M_dnl=zeros(Float64, disc.n_modes, disc.n_modes),
         surface_forcing=surface_forcing,
         phi_z1=phi_z1,
         transfer_velocity=transfer_velocity,
@@ -598,10 +620,9 @@ function dispatch_solve(
                         diff += p.tensors.diffusion_flux[k, i, j] * uij
                     end
                 end
-                p.nl[k] = -(p.adv_scale * adv + p.diff_scale * diff)
+                p.nl[k] = -p.adv_scale * adv + p.diff_scale * diff
             end
 
-            mul!(p.nl, p.M, p.nl)
             @inbounds for i in 1:p.n
                 du[i] += p.nl[i]
             end
@@ -627,25 +648,17 @@ function dispatch_solve(
         end
 
         if p.tensors !== nothing
-            fill!(p.dnl, 0.0)
-            @inbounds for k in 1:p.n
-                for l in 1:p.n
-                    d_adv = 0.0
-                    d_diff = 0.0
-                    for j in 1:p.n
-                        d_adv += p.tensors.advection[k, l, j] * u[j]
-                        d_adv += p.tensors.advection[k, j, l] * u[j]
-                        d_diff += p.tensors.diffusion_flux[k, l, j] * u[j]
-                        d_diff += p.tensors.diffusion_flux[k, j, l] * u[j]
-                    end
-                    p.dnl[k, l] = -(p.adv_scale * d_adv + p.diff_scale * d_diff)
-                end
-            end
+            _spectral_nonlinear_jacobian!(
+                p.dnl,
+                p.tensors,
+                u,
+                p.adv_scale,
+                p.diff_scale,
+            )
 
-            mul!(p.M_dnl, p.M, p.dnl)
             @inbounds for i in 1:p.n
                 for j in 1:p.n
-                    J[i, j] += p.M_dnl[i, j]
+                    J[i, j] += p.dnl[i, j]
                 end
             end
         end

@@ -2,5 +2,5 @@
 
 | Campaign | Observation basis | Selected | R2 | Residual | AIC | BIC |
 | :--- | :--- | :---: | ---: | ---: | ---: | ---: |
-| CASES-99 | campaign_modal_coefficients | baseline | -0.2289 | 3.197 | 0.074 | 0.559 |
-| SHEBA | two_level_linear_profile | physical | 0.9966 | 0.2754 | -58.766 | -58.281 |
+| CASES-99 | campaign_modal_coefficients | baseline | -0.2296 | 3.1978 | 0.08 | 0.565 |
+| SHEBA | two_level_linear_profile | baseline | 0.9896 | 0.4848 | -45.193 | -44.708 |

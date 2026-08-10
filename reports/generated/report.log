@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.3.22)  8 AUG 2026 08:47
+This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.3.22)  8 AUG 2026 13:13
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1111,51 +1111,49 @@ gn_exports/figures/cases_99_ri_heatmap.png> <./campaign_exports/figures/floss_r
 i_heatmap.png>]
 (./pde_benchmark/tables/cross_campaign_best_models.tex)
 (./supplements/cross_campaign_results.tex)
-(./pde_benchmark/tables/loso_validation_summary.tex)
-(./pde_benchmark/tables/cases_99_best_equation.tex [8
+(./pde_benchmark/tables/loso_validation_summary.tex) [8
 
-])
+]
+(./pde_benchmark/tables/cases_99_best_equation.tex)
 (./pde_benchmark/tables/cases_99_best_terms.tex)
 <pde_benchmark/figures/cases_99_pareto_rss.png, id=208, 602.25pt x 401.5pt>
 File: pde_benchmark/figures/cases_99_pareto_rss.png Graphic file (type png)
 <use pde_benchmark/figures/cases_99_pareto_rss.png>
 Package pdftex.def Info: pde_benchmark/figures/cases_99_pareto_rss.png  used on
- input line 294.
+ input line 300.
 (pdftex.def)             Requested size: 217.42265pt x 144.95035pt.
 <pde_benchmark/figures/cases_99_pareto_r2.png, id=209, 602.25pt x 401.5pt>
 File: pde_benchmark/figures/cases_99_pareto_r2.png Graphic file (type png)
 <use pde_benchmark/figures/cases_99_pareto_r2.png>
 Package pdftex.def Info: pde_benchmark/figures/cases_99_pareto_r2.png  used on 
-input line 300.
+input line 306.
 (pdftex.def)             Requested size: 217.42265pt x 144.95035pt.
 
 (./pde_benchmark/tables/sheba_best_equation.tex)
-(./pde_benchmark/tables/sheba_best_terms.tex)
-<pde_benchmark/figures/sheba_pareto_rss.png, id=210, 602.25pt x 401.5pt>
+(./pde_benchmark/tables/sheba_best_terms.tex) [9 <./pde_benchmark/figures/cases
+_99_pareto_rss.png> <./pde_benchmark/figures/cases_99_pareto_r2.png>]
+<pde_benchmark/figures/sheba_pareto_rss.png, id=217, 602.25pt x 401.5pt>
 File: pde_benchmark/figures/sheba_pareto_rss.png Graphic file (type png)
 <use pde_benchmark/figures/sheba_pareto_rss.png>
 Package pdftex.def Info: pde_benchmark/figures/sheba_pareto_rss.png  used on in
-put line 324.
+put line 330.
 (pdftex.def)             Requested size: 217.42265pt x 144.95035pt.
-<pde_benchmark/figures/sheba_pareto_r2.png, id=211, 602.25pt x 401.5pt>
+<pde_benchmark/figures/sheba_pareto_r2.png, id=218, 602.25pt x 401.5pt>
 File: pde_benchmark/figures/sheba_pareto_r2.png Graphic file (type png)
 <use pde_benchmark/figures/sheba_pareto_r2.png>
 Package pdftex.def Info: pde_benchmark/figures/sheba_pareto_r2.png  used on inp
-ut line 330.
+ut line 336.
 (pdftex.def)             Requested size: 217.42265pt x 144.95035pt.
- [9 <./pde_benchmark/figures/cases_99_pareto_rss.png> <./pde_benchmark/figures/
-cases_99_pareto_r2.png>]
 <pde_benchmark/figures/pde_profile_comparison.png, id=220, 1204.5pt x 501.875pt
 >
 File: pde_benchmark/figures/pde_profile_comparison.png Graphic file (type png)
 <use pde_benchmark/figures/pde_profile_comparison.png>
 Package pdftex.def Info: pde_benchmark/figures/pde_profile_comparison.png  used
- on input line 343.
+ on input line 349.
 (pdftex.def)             Requested size: 398.61395pt x 166.0864pt.
-
-(./supplements/numerical_verification.tex) [10 <./pde_benchmark/figures/sheba_p
-areto_rss.png> <./pde_benchmark/figures/sheba_pareto_r2.png> <./pde_benchmark/f
-igures/pde_profile_comparison.png>] (./supplements/reproducibility.tex)
+ [10 <./pde_benchmark/figures/sheba_pareto_rss.png> <./pde_benchmark/figures/sh
+eba_pareto_r2.png> <./pde_benchmark/figures/pde_profile_comparison.png>]
+(./supplements/numerical_verification.tex) (./supplements/reproducibility.tex)
 [11] [12] (./report.aux)
  ***********
 LaTeX2e <2025-11-01>
@@ -1165,11 +1163,11 @@ Package rerunfilecheck Info: File `report.out' has not changed.
 (rerunfilecheck)             Checksum: 803DA1649AABD9A92404C3E5AB137981;4392.
  ) 
 Here is how much of TeX's memory you used:
- 31238 strings out of 467525
- 631659 string characters out of 5418982
- 1066109 words of memory out of 5000000
+ 31241 strings out of 467525
+ 631689 string characters out of 5418982
+ 1066110 words of memory out of 5000000
  59404 multiletter control sequences out of 15000+600000
- 713654 words of font info for 182 fonts, out of 8000000 for 9000
+ 713737 words of font info for 183 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  98i,13n,108p,1003b,952s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </usr/local/texlive/2026/texmf-dist/fonts/type1/public/lm/lmbx10.pfb></usr/lo
@@ -1190,10 +1188,10 @@ e1/public/lm/lmr7.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/lm
 /2026/texmf-dist/fonts/type1/public/lm/lmsy10.pfb></usr/local/texlive/2026/texm
 f-dist/fonts/type1/public/lm/lmsy8.pfb></usr/local/texlive/2026/texmf-dist/font
 s/type1/public/lm/lmtt10.pfb>
-Output written on report.pdf (12 pages, 768119 bytes).
+Output written on report.pdf (12 pages, 767659 bytes).
 PDF statistics:
- 345 PDF objects out of 1000 (max. 8388607)
- 258 compressed objects within 3 object streams
- 57 named destinations out of 1000 (max. 500000)
+ 346 PDF objects out of 1000 (max. 8388607)
+ 259 compressed objects within 3 object streams
+ 58 named destinations out of 1000 (max. 500000)
  50495 words of extra memory for PDF output out of 51595 (max. 10000000)
 

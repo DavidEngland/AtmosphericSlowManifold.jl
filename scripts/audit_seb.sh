@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# audit_seb.sh — scan a SpectralBL-Analytics/data tree for surface energy
+# scripts/audit_seb.sh — scan a SpectralBL-Analytics/data tree for surface energy
 # budget (SEB) fields: ground/soil heat flux (G), soil/snow/ice thermistors,
 # skin temperature, net radiation, soil moisture, snow depth.
 #
