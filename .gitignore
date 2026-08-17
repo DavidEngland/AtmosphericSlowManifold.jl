@@ -58,3 +58,4 @@ reports/generated/report.*
 *.csv
 *.json
 *.png
+*.html

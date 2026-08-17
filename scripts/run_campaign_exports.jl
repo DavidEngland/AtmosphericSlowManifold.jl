@@ -1,4 +1,4 @@
-# scripts/run_campaign_exports.jl
+# AtmosphericSlowManifold.jl/scripts/run_campaign_exports.jl
 using AtmosphericSlowManifold
 using CSV
 using DataFrames

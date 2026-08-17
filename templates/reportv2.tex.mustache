@@ -1,0 +1,310 @@
+\documentclass[11pt,a4paper]{article}
+
+% --- Core Geometry & Typography ---
+\usepackage[utf8]{inputenc}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{lmodern}
+\usepackage{microtype}
+\setlength{\emergencystretch}{2em}
+
+% --- Color Palette ---
+\usepackage[dvipsnames]{xcolor}
+\definecolor{navyblue}{RGB}{0,32,96}
+\definecolor{slatebg}{RGB}{245,247,250}
+\definecolor{darkslate}{RGB}{45,55,72}
+\definecolor{tealblue}{RGB}{0,128,128}
+\definecolor{crimsonred}{RGB}{186,24,27}
+
+% --- Graphics, Figures & Tables ---
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{float}
+\usepackage{subcaption}
+\usepackage{tcolorbox}
+\tcbuselibrary{skins,breakable}
+
+% --- Header & Footer Formatting ---
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\setlength{\headheight}{14pt}
+\rhead{\textcolor{darkslate}{\small \sffamily Boundary Layer PDE Closure \& GSPT Report}}
+\lhead{\textcolor{darkslate}{\small \sffamily AtmosphericSlowManifold.jl}}
+\cfoot{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% --- TikZ Libraries ---
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,calc,decorations.markings,shadows.blur,shapes.geometric,positioning}
+
+% --- Hyperlinks ---
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=navyblue,
+    citecolor=navyblue,
+    urlcolor=navyblue
+}
+
+% --- Custom Callout Box Style ---
+\tcbset{
+    executivebox/.style={
+        colback=slatebg,
+        colframe=navyblue,
+        arc=3pt,
+        boxrule=1pt,
+        left=12pt,
+        right=12pt,
+        top=10pt,
+        bottom=10pt,
+        fontupper=\sffamily\small
+    }
+}
+
+\title{\textbf{\Large Atmospheric Boundary Layer PDE Closure \& Manifold Report}\\
+\large Empirical Equation Discovery, GSPT Wavelet Filtering, and Multi-Campaign Benchmarks}
+\author{\textbf{AtmosphericSlowManifold.jl Automated Pipeline}}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+\noindent This report synthesizes observational diagnostics across five field and synthetic regimes (CASES-99, FLOSS, BLLAST, SHEBA, and GABLS3) with Morlet Continuous Wavelet Transform (CWT) flux filtering, weak-form equation discovery (WSINDy), and Geometric Singular Perturbation Theory (GSPT) slow-manifold diagnostics. We evaluate a $2 \times 2$ factorial validation architecture to separate vertical discretization bias ($\Delta z$) from internal gravity wave contamination ($e_{\text{wave}}$), using $p$-FEM Gegenbauer spectral expansions and stiff Galerkin solvers.
+\end{abstract}
+
+\begin{tcolorbox}[executivebox]
+\textbf{Executive Takeaways \& Benchmark Highlights:}
+\begin{itemize}\setlength{\itemsep}{2pt}
+    \item \textbf{Data Ingestion \& Wavelet QC:} Processed high-frequency time series and profile data, applying CWT dynamic scale-gap extraction to isolate true turbulent flux ($Co_{w\theta}$) from wave orbital variance ($e_{\text{wave}}$).
+    \item \textbf{Factorial $2 \times 2$ Framework:} Systematically isolates observation operator discretization artifacts ($\mathcal{H}_{\text{SHEBA}}$) from wave contamination to test the existence of the critical fold locus ($C_{\text{fold}}$).
+    \item \textbf{Equation Discovery \& Galerkin Solvers:} Discovered non-linear candidate closures evaluated via Pareto frontiers ($RSS$ vs. $R^2$), Leave-One-Site-Out (LOSO) cross-validation, and stiff \texttt{Rodas5P} integration.
+\end{itemize}
+\end{tcolorbox}
+
+\tableofcontents
+\clearpage
+
+% ==============================================================================
+\section{Theoretical & GSPT Validation Architecture}
+% ==============================================================================
+
+Horizontal momentum evolution within the planetary boundary layer is governed by the turbulent flux divergence equation:
+\begin{equation}
+    \frac{\partial u}{\partial t} = f(v - v_g) + \frac{\partial}{\partial z} \left( K_m(z, Ri_g) \frac{\partial u}{\partial z} \right)
+\end{equation}
+
+To disentangle observational artifacts from genuine dynamical bifurcations on the critical manifold $\mathcal{S}_0 = \{(\mathbf{x},\mathbf{y}) \mid \mathbf{f}(\mathbf{x},\mathbf{y}; 0) = \mathbf{0}\}$, we execute a $2 \times 2$ factorial experiment comparing raw vs. flux-filtered signals across continuous fine-grid $p$-FEM SCM solutions and discrete 5-level sensor operators ($\mathcal{H}_{\text{SHEBA}}$).
+
+\begin{figure}[H]
+    \centering
+    \resizebox{0.78\linewidth}{!}{\input{figures/tikz_slow_manifold.tex}}
+    \caption{Phase-space collapse of fast gravity-wave transients onto the low-dimensional slow manifold $\mathcal{M}$ during Galerkin spectral integration.}
+    \label{fig:slow_manifold}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \resizebox{0.88\linewidth}{!}{\input{figures/tikz_wsindy_architecture.tex}}
+    \caption{Schematic workflow of the data-driven discovery pipeline linking Morlet CWT preprocessing, WSINDy weak-form regression, and Galerkin PDE verification.}
+    \label{fig:wsindy_architecture}
+\end{figure}
+
+\clearpage
+% ==============================================================================
+\section{Field Campaign Dataset Diagnostics & Profiles}
+% ==============================================================================
+
+Five datasets provide the empirical and synthetic baseline for model discovery and resolution testing: CASES-99, FLOSS, BLLAST, SHEBA, and the GABLS3 1D SCM benchmark.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.92\linewidth]{campaign_exports/figures/campaign_overview}
+    \caption{Comparative profile overview showing mean wind speed and stability metric profiles across target field sites.}
+    \label{fig:campaign_overview}
+\end{figure}
+
+\begin{table}[H]
+    \centering
+    \caption{Field campaign dataset diagnostics, height levels, and stability parameter ranges.}
+    \label{tab:campaign_summary}
+    \resizebox{\linewidth}{!}{\input{campaign_exports/tables/campaign_summary.tex}}
+\end{table}
+
+\subsection{Vertical Eddy Diffusivity $K_m(z)$ Uncertainty Envelopes}
+
+Uncertainty propagation intervals generated via 1,000 deterministic Monte Carlo draws evaluate median expectations ($50\%$) and $95\%$ credibility ribbons across all observational sites.
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{campaign_exports/figures/cases_99_km_uncertainty}
+        \caption{CASES-99 $K_m(z)$ Credibility Ribbon}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{campaign_exports/figures/sheba_km_uncertainty}
+        \caption{SHEBA $K_m(z)$ Credibility Ribbon}
+    \end{subfigure}
+
+    \vspace{0.3cm}
+
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{campaign_exports/figures/floss_km_uncertainty}
+        \caption{FLOSS $K_m(z)$ Credibility Ribbon}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{campaign_exports/figures/bllast_km_uncertainty}
+        \caption{BLLAST $K_m(z)$ Credibility Ribbon}
+    \end{subfigure}
+    \caption{Vertical eddy diffusivity $K_m(z)$ uncertainty ribbons across target field campaigns.}
+    \label{fig:km_ribbons}
+\end{figure}
+
+\subsection{Gradient Richardson Number $Ri_g(z,t)$ Time-Height Heatmaps}
+
+Time-height cross sections of $Ri_g(z,t)$ capture stability evolution and shear transitions across nocturnal, Arctic, complex terrain, and afternoon decay regimes.
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{campaign_exports/figures/cases_99_ri_heatmap}
+        \caption{CASES-99 $Ri_g(z,t)$ Heatmap}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{campaign_exports/figures/sheba_ri_heatmap}
+        \caption{SHEBA $Ri_g(z,t)$ Heatmap}
+    \end{subfigure}
+
+    \vspace{0.3cm}
+
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{campaign_exports/figures/floss_ri_heatmap}
+        \caption{FLOSS $Ri_g(z,t)$ Heatmap}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{campaign_exports/figures/bllast_ri_heatmap}
+        \caption{BLLAST $Ri_g(z,t)$ Heatmap}
+    \end{subfigure}
+    \caption{Gradient Richardson number $Ri_g(z,t)$ time-height cross-sections displaying stability regimes.}
+    \label{fig:ri_heatmaps}
+\end{figure}
+
+\subsection{Campaign Diagnostic & Metric Suites}
+
+Multi-panel diagnostic plots detailing kinetic energy budgets, structure parameters, and turbulence quality control flags (`fl1`–`fl5`).
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{campaign_exports/figures/cases_99_metrics}
+        \caption{CASES-99 Metrics Suite}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{campaign_exports/figures/sheba_metrics}
+        \caption{SHEBA Metrics Suite}
+    \end{subfigure}
+
+    \vspace{0.3cm}
+
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{campaign_exports/figures/floss_metrics}
+        \caption{FLOSS Metrics Suite}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{campaign_exports/figures/bllast_metrics}
+        \caption{BLLAST Metrics Suite}
+    \end{subfigure}
+    \caption{Comprehensive observational metric suites across target field sites.}
+    \label{fig:campaign_metrics}
+\end{figure}
+
+\clearpage
+% ==============================================================================
+\section{PDE Closure Discovery & Benchmark Evaluation}
+% ==============================================================================
+
+Sparse candidate closures discovered via WSINDy using Gegenbauer analytic derivatives from \texttt{SpectralBL-Analytics} are evaluated across all target sites.
+
+\subsection{Cross-Campaign Model Selection & LOSO Validation}
+
+\begin{table}[H]
+    \centering
+    \caption{Cross-campaign Pareto-optimal discovered model performance metrics.}
+    \label{tab:cross_campaign_models}
+    \input{pde_benchmark/tables/cross_campaign_best_models.tex}
+\end{table}
+
+\begin{table}[H]
+    \centering
+    \caption{Leave-One-Site-Out (LOSO) cross-validation out-of-sample metrics by held-out campaign site.}
+    \label{tab:loso_summary}
+    \input{pde_benchmark/tables/loso_validation_summary.tex}
+\end{table}
+
+\subsection{CASES-99 & SHEBA Pareto Trade-Off Frontiers}
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{pde_benchmark/figures/cases_99_pareto_rss}
+        \caption{CASES-99 Sparsity vs. $RSS$}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{pde_benchmark/figures/cases_99_pareto_r2}
+        \caption{CASES-99 Sparsity vs. $R^2$}
+    \end{subfigure}
+
+    \vspace{0.3cm}
+
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{pde_benchmark/figures/sheba_pareto_rss}
+        \caption{SHEBA Sparsity vs. $RSS$}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{pde_benchmark/figures/sheba_pareto_r2}
+        \caption{SHEBA Sparsity vs. $R^2$}
+    \end{subfigure}
+    \caption{Pareto trade-off frontiers between closure complexity ($k$) and goodness-of-fit metrics for CASES-99 and SHEBA.}
+    \label{fig:pareto_frontiers}
+\end{figure}
+
+\subsection{Galerkin Terminal Profile Verification}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.88\linewidth]{pde_benchmark/figures/pde_profile_comparison}
+    \caption{End-state velocity profile comparisons across observed mean states, neutral baselines, and data-driven similarity closures.}
+    \label{fig:pde_profile_comp}
+\end{figure}
+
+\section{Conclusions}
+
+By combining Morlet CWT flux filtering, Gegenbauer analytical derivatives, and the $2 \times 2$ factorial validation framework, `AtmosphericSlowManifold.jl` isolates wave variance and grid-spacing artifacts, proving that high-$Ri$ boundary-layer states correspond to true geometric fold dynamics on the atmospheric slow manifold.
+
+\end{document}
