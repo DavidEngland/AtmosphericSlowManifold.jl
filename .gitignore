@@ -49,13 +49,21 @@ docs/build/
 # ==========================================
 # Generated Campaign Exports & PDE Benchmarks
 # ==========================================
-reports/generated/campaign_exports/
-reports/generated/pde_benchmark/
+reports/generated/campaign_exports/*
+reports/generated/pde_benchmark/*
 reports/generated/report.*
+!reports/generated/**/
 
+# ==========================================
 # Generated Data & Plot Files
+# ==========================================
 *.nc
 *.csv
 *.json
 *.png
 *.html
+
+# Whitelist exceptions (must be placed below ignore rules)
+!reports/generated/**/*.png
+!reports/generated/**/*.md
+!reports/generated/**/*.pdf
