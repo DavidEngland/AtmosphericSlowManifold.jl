@@ -1,0 +1,32 @@
+\begin{tikzpicture}[
+    node distance=1.15cm and 1.3cm,
+    >=Stealth,
+    block/.style={
+        draw=navyblue, fill=navyblue!5, ultra thick, rectangle, rounded corners=4pt,
+        align=center, inner sep=7pt, font=\sffamily\small
+    },
+    process/.style={
+        draw=tealblue, fill=tealblue!8, thick, rectangle, rounded corners=3pt,
+        align=center, inner sep=6pt, font=\sffamily\small
+    },
+    arrow/.style={->, ultra thick, color=navyblue}
+]
+    \node[block] (data) {\textbf{Raw Observations}\\campaign CSV/NetCDF};
+    \node[process, right=of data] (preprocess) {\textbf{Profile Preprocessing}\\aliases, units, finite records};
+    \node[block, right=of preprocess] (spectral) {\textbf{Spectral Transform}\\$u(z,t) \mapsto \mathbf{a}(t)$};
+    \node[process, below=of spectral] (weak) {\textbf{Weak Integration}\\$\mathbf{b}=\mathbf{G}\boldsymbol{\xi}$};
+    \node[block, left=of weak] (selection) {\textbf{Sparse Model Selection}\\constraints, AIC/BIC, Pareto};
+    \node[process, left=of selection] (pde) {\textbf{PDE Closure}\\symbolic operator terms};
+    \node[block, below=of pde] (galerkin) {\textbf{Galerkin Projection}\\$\mathbf{M}\dot{\mathbf{a}}=\mathbf{R}(\mathbf{a})$};
+    \node[process, right=of galerkin] (solver) {\textbf{Stiff Integration}\\\texttt{Rodas5P}};
+    \node[block, right=of solver] (validation) {\textbf{Validation \& Export}\\metrics, LOSO, tables, figures};
+
+    \draw[arrow] (data) -- (preprocess);
+    \draw[arrow] (preprocess) -- (spectral);
+    \draw[arrow] (spectral) -- (weak);
+    \draw[arrow] (weak) -- (selection);
+    \draw[arrow] (selection) -- (pde);
+    \draw[arrow] (pde) -- (galerkin);
+    \draw[arrow] (galerkin) -- (solver);
+    \draw[arrow] (solver) -- (validation);
+\end{tikzpicture}
