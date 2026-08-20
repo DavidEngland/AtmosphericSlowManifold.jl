@@ -2,6 +2,8 @@
 # src/Observation/DataIngestion.jl
 using DelimitedFiles
 using NCDatasets
+using CSV
+using DataFrames
 
 struct ObservationTable
     columns::Dict{Symbol,Vector{Float64}}
@@ -90,6 +92,40 @@ function _normalize_column_selector(col)::Symbol
     return _normalize_header(String(col))
 end
 
+"""Resolve a raw CSV/DataFrame column name to its canonical variable symbol, if known."""
+function resolve_header_alias(col)::Union{Symbol,Nothing}
+    normalized = _normalize_header(col)
+    for (canonical, aliases) in HEADER_ALIASES
+        normalized in aliases && return canonical
+    end
+    return nothing
+end
+
+"""
+    has_unit_suffix(col_name::Symbol) -> Bool
+
+Returns true if the column header ends with a recognized unit suffix (e.g., _m, _ms, _k, _kgkg).
+"""
+function has_unit_suffix(col_name::Symbol)
+    s = string(col_name)
+    return any(endswith(s, suffix) for suffix in ["_m", "_ms", "_k", "_kgkg", "_wm2", "_pa", "_deg"])
+end
+
+"""Build an `ObservationTable` from a `DataFrame` using resolved canonical column mappings."""
+function parse_observation_dataframe(df::DataFrame, mapped_cols::Dict{Symbol,Symbol}; strict_units::Bool=true, kwargs...)
+    cols = Dict{Symbol,Vector{Float64}}()
+    units = Dict{Symbol,String}()
+
+    for (canonical, raw_col) in mapped_cols
+        vals = [_to_f64(v) for v in df[!, raw_col]]
+        strict_units && !all(isfinite, vals) && throw(ArgumentError("Column $(raw_col) contains non-finite values."))
+        cols[canonical] = vals
+        haskey(EXPECTED_UNITS, canonical) && (units[canonical] = EXPECTED_UNITS[canonical])
+    end
+
+    return ObservationTable(cols, units)
+end
+
 function _read_first_var(ds::NCDataset, names::Vector{Symbol})
     for n in names
         if haskey(ds, String(n))
@@ -108,32 +144,36 @@ function _read_required_var(ds::NCDataset, key::Union{Nothing,Symbol}, fallback_
     return res
 end
 
-"""Read tower profile CSV into a normalized in-memory observation table."""
-function read_tower_csv(path::AbstractString; delim::Char=(','), strict_units::Bool=true)
-    raw, hdr = readdlm(path, delim, header=true)
-    headers = [_normalize_header(h) for h in vec(hdr)]
-    cmap = Dict{Symbol,Symbol}()
-    for req in REQUIRED_TOWER_COLUMNS
-        aliases = HEADER_ALIASES[req]
-        idx = findfirst(h -> h in aliases, headers)
-        idx === nothing && throw(ArgumentError("Missing required column $(req). Header list: $(headers)"))
-        cmap[req] = headers[idx]
+"""
+    read_tower_csv(filepath::AbstractString; strict_units::Bool = true, kwargs...)
+
+Reads tower observation CSV data and validates required variable columns.
+Throws an `ArgumentError` if required fields cannot be resolved from CSV headers.
+"""
+function read_tower_csv(filepath::AbstractString; strict_units::Bool = true, kwargs...)
+    df = CSV.read(filepath, DataFrame)
+
+    # Map raw CSV headers to canonical variable symbols
+    mapped_cols = Dict{Symbol,Symbol}()
+    for col in propertynames(df)
+        if strict_units && !has_unit_suffix(col)
+            continue # Skip bare unannotated headers under strict_units mode
+        end
+        canonical = resolve_header_alias(col)
+        if canonical !== nothing
+            mapped_cols[canonical] = col
+        end
     end
 
-    hindex = Dict(h => i for (i, h) in enumerate(headers))
-    nrows = size(raw, 1)
-    cols = Dict{Symbol,Vector{Float64}}()
+    # Validate presence of mandatory canonical variables
+    required_vars = (:z, :u, :v, :theta)
+    missing_vars = filter(v -> !haskey(mapped_cols, v), required_vars)
 
-    for req in REQUIRED_TOWER_COLUMNS
-        src = cmap[req]
-        j = hindex[src]
-        vals = [_to_f64(raw[i, j]) for i in 1:nrows]
-        all(isfinite, vals) || throw(ArgumentError("Column $(src) contains non-finite values."))
-        cols[req] = vals
+    if !isempty(missing_vars)
+        throw(ArgumentError("CSV file '$filepath' missing required canonical columns with unit annotations: $(missing_vars)"))
     end
 
-    units = Dict(req => EXPECTED_UNITS[req] for req in REQUIRED_TOWER_COLUMNS)
-    return ObservationTable(cols, units)
+    return parse_observation_dataframe(df, mapped_cols; strict_units=strict_units, kwargs...)
 end
 
 """Read tower observation files with automatic flux and u_star fallback resolution."""
@@ -258,4 +298,44 @@ end
 """Wrapper to read NetCDF tower observations into an ObservationTable."""
 function read_tower_netcdf(path::AbstractString; kwargs...)
     return read_observation_data(path; kwargs...)
+end
+
+"""
+    resolve_sibling_data_dir(target_dir::AbstractString = "data"; must_exist::Bool = false) -> String
+
+Locates a sibling data directory relative to the package root or working directory.
+If `must_exist` is true and no matching directory is found, throws an `ArgumentError`.
+"""
+function resolve_sibling_data_dir(target_dir::AbstractString = "data"; must_exist::Bool = false)
+    pkg_root = normpath(joinpath(@__DIR__, "..", ".."))
+    candidate = joinpath(pkg_root, target_dir)
+    if isdir(candidate)
+        return candidate
+    end
+    cwd_candidate = joinpath(pwd(), target_dir)
+    if isdir(cwd_candidate)
+        return cwd_candidate
+    end
+    if must_exist
+        throw(ArgumentError("Directory '$target_dir' not found relative to package root or current working directory."))
+    end
+    return candidate
+end
+
+"""
+    find_data_files(dir::AbstractString, ext::AbstractString = ".csv") -> Vector{String}
+
+Recursively finds all data files matching the specified extension within a directory.
+"""
+function find_data_files(dir::AbstractString, ext::AbstractString = ".csv")
+    !isdir(dir) && return String[]
+    matches = String[]
+    for (root, _, files) in walkdir(dir)
+        for file in files
+            if endswith(file, ext)
+                push!(matches, joinpath(root, file))
+            end
+        end
+    end
+    return sort!(matches)
 end

@@ -3,11 +3,11 @@
 | Item | Recorded value |
 | :--- | :--- |
 | Repository | https://github.com/DavidEngland/AtmosphericSlowManifold.jl.git |
-| Commit | ce07fd9 |
+| Commit | 4aeb04d |
 | Package version | 0.1.0 |
 | Julia runtime | 1.12.6 |
 | Project compatibility | Julia 1.10 |
-| Manifest SHA-256 | dd3828e8c3d4e6ad... |
+| Manifest SHA-256 | 879863a09e5bef64... |
 | Operating system | Darwin / arm64-apple-darwin25.4.0 |
 | Processor | apple-m4 |
 | Julia threads | 1 |

@@ -78,6 +78,14 @@ function update_diffusivity_buffers!(workspace::BoundaryLayerWorkspace{Float64})
         fill!(workspace.K_m_buffer, abs(adv_scale))
         fill!(workspace.K_h_buffer, abs(diff_scale))
     end
+    # Enforce a physical diffusivity floor so stiff, strongly stable states don't
+    # collapse K_m/K_h to zero and stall the implicit time-stepper.
+    @inbounds for i in eachindex(workspace.K_m_buffer)
+        workspace.K_m_buffer[i] = max(K_MIN_DIFFUSIVITY, workspace.K_m_buffer[i])
+    end
+    @inbounds for i in eachindex(workspace.K_h_buffer)
+        workspace.K_h_buffer[i] = max(K_MIN_DIFFUSIVITY, workspace.K_h_buffer[i])
+    end
     _fill_gradient!(workspace.dK_dz_buffer, workspace.K_m_buffer, workspace.z_grid)
     return workspace
 end

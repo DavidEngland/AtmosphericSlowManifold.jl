@@ -76,6 +76,12 @@ function campaign_mean_wind(raw_csv::String)
     return 1.0
 end
 
+# Damp mode k by exp(-gamma * k^2) to suppress Gibbs-ringing high-frequency
+# coefficients from Gegenbauer projections fit against sparse tower levels.
+function regularize_modes(coeffs::Vector{Float64}; gamma::Float64 = 0.15)
+    return [c * exp(-gamma * (k - 1)^2) for (k, c) in enumerate(coeffs)]
+end
+
 function campaign_observed_modes(raw_csv::String, n_modes::Int, lambda::Float64)
     df = CSV.read(raw_csv, DataFrame)
     rename!(df, Symbol.(names(df)))
@@ -94,6 +100,39 @@ function campaign_observed_modes(raw_csv::String, n_modes::Int, lambda::Float64)
             modes[mode_index + 1] = finite_mean(to_f64.(df[!, name]))
         end
         all(isfinite, modes) && return modes, "campaign_modal_coefficients"
+    end
+
+    if all(hasproperty(df, name) for name in (:z, :u, :v, :theta))
+        z = to_f64.(df[!, :z])
+        u = to_f64.(df[!, :u])
+        v = to_f64.(df[!, :v])
+        theta = to_f64.(df[!, :theta])
+        q = hasproperty(df, :q) ? to_f64.(df[!, :q]) : fill(NaN, length(z))
+
+        z_levels = sort(unique(filter(isfinite, z)))
+        if length(z_levels) >= 3
+            u_mean = [finite_mean(u[z.==zl]) for zl in z_levels]
+            v_mean = [finite_mean(v[z.==zl]) for zl in z_levels]
+            theta_mean = [finite_mean(theta[z.==zl]) for zl in z_levels]
+            q_mean = [finite_mean(q[z.==zl]) for zl in z_levels]
+
+            if all(isfinite, u_mean) && all(isfinite, v_mean) && all(isfinite, theta_mean)
+                # Project the time-averaged vertical profile onto the shared Gegenbauer basis.
+                # Keep well below the level count (exact-fit projections at n_modes ==
+                # n_levels are ill-conditioned and can destabilize the PDE solve).
+                obs = ObservationTable(
+                    Dict(:z => z_levels, :u => u_mean, :v => v_mean, :theta => theta_mean, :q => q_mean),
+                    Dict{Symbol,String}(),
+                )
+                effective_modes = min(n_modes, max(1, length(z_levels) - 2))
+                projection = project_to_gegenbauer(obs; n_modes = effective_modes, lambda = lambda)
+                u_modes = regularize_modes(projection.coefficients[:u])
+                for i in 1:min(n_modes, length(u_modes))
+                    modes[i] = u_modes[i]
+                end
+                all(isfinite, modes) && return modes, "gegenbauer_projected_profile"
+            end
+        end
     end
 
     if all(hasproperty(df, name) for name in (:ws_lo, :ws_hi))
@@ -268,7 +307,7 @@ function make_pareto_plot(
     return out_path
 end
 
-function solve_with_fallback(pde_sys, closure, disc, tspan, u0)
+function solve_with_fallback(pde_sys, closure, disc, tspan, u0; allow_mode_fallback::Bool = true)
     solver_chain = (
         (name = "Rodas5P", alg = Rodas5P(autodiff = true)),
         (name = "FBDF", alg = FBDF()),
@@ -301,6 +340,14 @@ function solve_with_fallback(pde_sys, closure, disc, tspan, u0)
         catch err
             push!(failures, "$(candidate.name): $(sprint(showerror, err))")
         end
+    end
+
+    if allow_mode_fallback
+        @warn "Higher-order modal solver unstable. Falling back to N=1 mode baseline." failures
+        u0_truncated = zeros(eltype(u0), length(u0))
+        u0_truncated[1] = u0[1]
+        sol, solver_name, ok = solve_with_fallback(pde_sys, closure, disc, tspan, u0_truncated; allow_mode_fallback = false)
+        ok && return sol, "$(solver_name) (N=1 fallback)", true
     end
 
     @warn "All stiff solver candidates failed" failures

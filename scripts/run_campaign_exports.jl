@@ -12,7 +12,7 @@ const CAMPAIGN_SOURCES = Dict(
     "CASES-99" => "../SpectralBL-Analytics/data/drafts/trajectories/trajectory_cases_99.csv",
     "FLOSS" => "../SpectralBL-Analytics/data/drafts/trajectories/trajectory_floss.csv",
     "BLLAST" => "../SpectralBL-Analytics/data/drafts/trajectories/trajectory_bllast.csv",
-    "SHEBA" => "../SpectralBL-Analytics/data/sheba/processed/sheba_input.csv",
+    "SHEBA" => "../SpectralBL-Analytics/data/drafts/trajectories/trajectory_sheba.csv",
 )
 
 const OUTPUT_ROOT = joinpath(pwd(), "reports", "generated", "campaign_exports")
@@ -105,24 +105,62 @@ function choose_reference_height(df::DataFrame)
     return heights[cld(length(heights), 2)]
 end
 
-function ensure_obukhov_scaling!(df::DataFrame)
+function ensure_obukhov_scaling!(df::DataFrame; g=9.81, theta_0=273.15)
     has_l = hasproperty(df, :L_obukhov)
     if has_l
         lvals = get_numeric_column(df, :L_obukhov)
         finite_count(lvals) > 0 && return
     end
 
-    hasproperty(df, :eta_3) || return
-    eta3 = get_numeric_column(df, :eta_3)
-    zref = choose_reference_height(df)
-    L = fill(NaN, length(eta3))
-    for i in eachindex(eta3)
-        η = eta3[i]
-        isfinite(η) || continue
-        abs(η) <= 1e-8 && continue
-        L[i] = zref / η
+    if hasproperty(df, :eta_3)
+        eta3 = get_numeric_column(df, :eta_3)
+        zref = choose_reference_height(df)
+        L = fill(NaN, length(eta3))
+        for i in eachindex(eta3)
+            η = eta3[i]
+            isfinite(η) || continue
+            abs(η) <= 1e-8 && continue
+            L[i] = zref / η
+        end
+        if finite_count(L) > 0
+            df[!, :L_obukhov] = L
+            return
+        end
     end
-    df[!, :L_obukhov] = L
+
+    # Tower profile fallback: Estimate Obukhov length from lowest two levels
+    time_col = get_existing_column(df, Symbol[:time, :sample_index, :timestamp])
+    if time_col !== nothing && all(c -> hasproperty(df, c), [:z, :u, :v, :theta])
+        L = fill(NaN, nrow(df))
+        gd = groupby(df, time_col)
+        for sub in gd
+            nrow(sub) >= 2 || continue
+            sub_sorted = sort(sub, :z)
+            z1, z2 = sub_sorted.z[1], sub_sorted.z[2]
+            dz = z2 - z1
+            dz <= 0 && continue
+
+            dtheta = sub_sorted.theta[2] - sub_sorted.theta[1]
+            du = sub_sorted.u[2] - sub_sorted.u[1]
+            dv = sub_sorted.v[2] - sub_sorted.v[1]
+            du2 = du^2 + dv^2
+
+            rib = (g / theta_0) * (dtheta * dz) / max(1e-6, du2)
+            zm = (z1 + z2) / 2.0
+
+            zeta_m = rib >= 0 ? (rib / max(0.01, 1.0 - 5.0 * min(rib, 0.19))) : rib
+            abs(zeta_m) < 1e-6 && (zeta_m = 1e-6 * sign(zeta_m + 1e-12))
+            L_val = zm / zeta_m
+
+            for idx in parentindices(sub)[1]
+                L[idx] = L_val
+            end
+        end
+        if finite_count(L) > 0
+            df[!, :L_obukhov] = L
+            return
+        end
+    end
 end
 
 function derive_zeta_from_obukhov!(df::DataFrame)
@@ -137,7 +175,9 @@ function derive_zeta_from_obukhov!(df::DataFrame)
         Li = L[i]
         isfinite(Li) || continue
         abs(Li) <= 1e-12 && continue
-        zeta[i] = zref / Li
+        z_val = hasproperty(df, :z) ? to_f64(df[i, :z]) : zref
+        isfinite(z_val) || (z_val = zref)
+        zeta[i] = z_val / Li
     end
     df[!, :zeta] = zeta
 end
@@ -249,31 +289,87 @@ function collect_stats(df::DataFrame, cols::Vector{Symbol})
 end
 
 function ri_matrix(df::DataFrame)
+    # Strategy 1: Check for explicit ri_g_* columns
     ri_cols = sort(Symbol.(filter(n -> startswith(String(n), "ri_g_"), names(df))))
-    isempty(ri_cols) && return nothing
+    if !isempty(ri_cols)
+        z_grid = [tryparse(Float64, replace(String(c)[6:end], "_" => ".")) for c in ri_cols]
+        if all(z -> z !== nothing && isfinite(z), z_grid)
+            z_grid = Float64.(z_grid)
+            order = sortperm(z_grid)
+            z_grid = z_grid[order]
+            ri_cols = ri_cols[order]
 
-    z_grid = Float64[]
-    for c in ri_cols
-        suffix = replace(String(c)[6:end], "_" => ".")
-        z = tryparse(Float64, suffix)
-        push!(z_grid, z === nothing ? NaN : z)
-    end
-    if any(!isfinite, z_grid)
-        return nothing
+            t_grid = collect(1.0:1.0:nrow(df))
+            mat = zeros(Float64, length(z_grid), nrow(df))
+            for (i, c) in enumerate(ri_cols)
+                mat[i, :] = get_numeric_column(df, c)
+            end
+            return z_grid, t_grid, mat
+        end
     end
 
-    order = sortperm(z_grid)
-    z_grid = z_grid[order]
-    ri_cols = ri_cols[order]
+    # Strategy 2: Derive Ri_g dynamic vertical profile from stability parameter (zeta)
+    if hasproperty(df, :zeta)
+        zeta_vec = get_numeric_column(df, :zeta)
+        if finite_count(zeta_vec) > 0
+            z_grid = collect(2.0:2.0:30.0) # Standard tower vertical grid (m)
+            t_grid = collect(1.0:1.0:nrow(df))
+            mat = zeros(Float64, length(z_grid), nrow(df))
 
-    t_grid = collect(1.0:1.0:nrow(df))
-    mat = zeros(Float64, length(z_grid), nrow(df))
-    for (i, c) in enumerate(ri_cols)
-        vec = get_numeric_column(df, c)
-        length(vec) == nrow(df) || return nothing
-        mat[i, :] = vec
+            # Convert zeta to Ri_g using Businger-Dyer relationships: Ri_g = zeta / phi_m(zeta)
+            for (i, z) in enumerate(z_grid)
+                for t in 1:nrow(df)
+                    ζ = zeta_vec[t] * (z / 10.0) # Scale zeta to height level z
+                    if isfinite(ζ)
+                        ϕ_m = ζ >= 0 ? (1.0 + 5.0 * ζ) : (1.0 - 16.0 * ζ)^(-0.25)
+                        mat[i, t] = ζ / max(0.01, ϕ_m)
+                    else
+                        mat[i, t] = NaN
+                    end
+                end
+            end
+            return z_grid, t_grid, mat
+        end
     end
-    return z_grid, t_grid, mat
+
+    # Strategy 3: Finite-difference Ri_g directly from multi-level tower profiles
+    rm = ri_matrix_from_profiles(df)
+    rm === nothing || return rm
+
+    return nothing
+end
+
+"""Compute Ri_g via vertical finite differences across tower levels grouped by timestamp."""
+function ri_matrix_from_profiles(df::DataFrame; g=9.81, theta_0=273.15)
+    all(c -> hasproperty(df, c), [:time, :z, :u, :v, :theta]) || return nothing
+
+    levels = sort(unique(get_numeric_column(df, :z)))
+    length(levels) >= 2 || return nothing
+
+    t_grid = sort(unique(get_numeric_column(df, :time)))
+    z_mid = [(levels[k] + levels[k+1]) / 2.0 for k in 1:length(levels)-1]
+    mat = fill(NaN, length(z_mid), length(t_grid))
+
+    gd = groupby(df, :time)
+    for (t_idx, t_val) in enumerate(t_grid)
+        key = (time=t_val,)
+        haskey(gd, key) || continue
+        sub = sort(gd[key], :z)
+
+        for k in 1:nrow(sub)-1
+            dz = sub.z[k+1] - sub.z[k]
+            dz <= 0 && continue
+
+            dtheta_dz = (sub.theta[k+1] - sub.theta[k]) / dz
+            du_dz = (sub.u[k+1] - sub.u[k]) / dz
+            dv_dz = (sub.v[k+1] - sub.v[k]) / dz
+
+            shear_sq = max(1e-6, du_dz^2 + dv_dz^2)
+            mat[k, t_idx] = (g / theta_0) * dtheta_dz / shear_sq
+        end
+    end
+
+    return z_mid, t_grid, mat
 end
 
 function ri_height_levels(df::DataFrame)

@@ -41,9 +41,13 @@ end
     return smooth_floor(_poly_eval(c.phi_coeffs, zeta), T(0.1); eps = T(1e-3))
 end
 
+# Minimum physical background diffusivity so strongly stable regimes (Ri_g >> 0.25)
+# cannot drive K_m/K_h to zero and stall implicit time-stepping.
+const K_MIN_DIFFUSIVITY = 1.0e-4
+
 @inline function _km(c::PhysicalSimilarityClosure{T}, z::Number) where {T<:AbstractFloat}
     zeta = _zeta_from_height(c, z)
-    return (c.karman * c.ustar * z) / _phi_m(c, zeta)
+    return max(T(K_MIN_DIFFUSIVITY), (c.karman * c.ustar * z) / _phi_m(c, zeta))
 end
 
 """
@@ -228,7 +232,7 @@ function evaluate_heat_diffusivity_profile!(
         z = smooth_floor(z_grid[i], zero(T); eps = T(1e-3))
         zeta = _zeta_from_height(closure, z)
         phi_h = smooth_floor(_phi_m(closure, zeta) * T(1.1), T(0.1); eps = T(1e-3))
-        K_out[i] = (closure.karman * closure.ustar * z) / phi_h
+        K_out[i] = max(T(K_MIN_DIFFUSIVITY), (closure.karman * closure.ustar * z) / phi_h)
     end
     return K_out
 end
