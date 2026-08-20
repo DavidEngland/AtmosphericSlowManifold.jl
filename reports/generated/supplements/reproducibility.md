@@ -3,7 +3,7 @@
 | Item | Recorded value |
 | :--- | :--- |
 | Repository | https://github.com/DavidEngland/AtmosphericSlowManifold.jl.git |
-| Commit | b9a85be |
+| Commit | ce07fd9 |
 | Package version | 0.1.0 |
 | Julia runtime | 1.12.6 |
 | Project compatibility | Julia 1.10 |

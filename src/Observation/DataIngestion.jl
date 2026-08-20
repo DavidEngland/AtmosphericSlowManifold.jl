@@ -2,7 +2,6 @@
 # src/Observation/DataIngestion.jl
 using DelimitedFiles
 using NCDatasets
-using Logging
 
 struct ObservationTable
     columns::Dict{Symbol,Vector{Float64}}
@@ -254,4 +253,9 @@ function read_observation_data(
     else
         throw(ArgumentError("Unsupported extension $(ext). Use .csv or .nc."))
     end
+end
+
+"""Wrapper to read NetCDF tower observations into an ObservationTable."""
+function read_tower_netcdf(path::AbstractString; kwargs...)
+    return read_observation_data(path; kwargs...)
 end

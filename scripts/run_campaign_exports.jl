@@ -200,8 +200,8 @@ function apply_observation_ingestion!(df::DataFrame, abs_path::String)
     obs = read_observation_data(
         abs_path;
         kwargs...,
-        compute_obukhov=true,
-        surface_flux_aliases=true,
+        include_derived_obukhov=true,
+        auto_surface_flux_aliases=true,
     )
 
     for c in (:sensible_heat_flux, :L_obukhov)

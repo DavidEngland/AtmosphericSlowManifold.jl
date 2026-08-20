@@ -1,4 +1,3 @@
-# src/AtmosphericSlowManifold.jl
 module AtmosphericSlowManifold
 
 using ModelingToolkit
@@ -22,6 +21,7 @@ include("Closures/SmoothOperators.jl")
 include("Closures/WSINDyClosure.jl")
 include("Closures/MOSTClosure.jl")
 include("Closures/PhysicalSimilarityClosure.jl")
+include("Closures/Z0HRClosure.jl")
 
 include("Observation/DataIngestion.jl")
 include("Observation/SpectralBLTransform.jl")
@@ -51,10 +51,10 @@ export ManifoldState, FoldConstraint, fold_residual, fold_transversality
 export Geometry
 export FoldedSingularity, classify_folded_singularity, detect_canard_trajectories
 
-export AbstractClosure, AbstractAtmosphericClosure, WSINDyClosure, MOSTClosure, PhysicalSimilarityClosure
+export AbstractClosure, AbstractAtmosphericClosure, WSINDyClosure, MOSTClosure, PhysicalSimilarityClosure, Z0HRClosure
 export eddy_momentum, eddy_heat, surface_flux
 export evaluate_diffusivity_profile!, evaluate_heat_diffusivity_profile!
-export smooth_max, smooth_min, smooth_floor
+export smooth_max, smooth_min, smooth_floor, z0hr_stability_functions
 
 export AbstractDiscretization, MethodOfLinesFD, SpectralBLGalerkin
 export generate_stretched_grid, solve_scm
@@ -102,5 +102,6 @@ export export_to_csv, export_to_json, export_to_netcdf
 export Diagnostics
 
 export verify_closure
+export Z0HRClosure, z0hr_stability_functions, eddy_momentum, eddy_heat, surface_flux, evaluate_diffusivity_profile!, evaluate_heat_diffusivity_profile!
 
 end # module AtmosphericSlowManifold
